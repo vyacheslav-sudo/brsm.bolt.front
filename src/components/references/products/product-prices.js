@@ -148,6 +148,18 @@ class ProductPrices extends Component {
       });
   };
 
+  onPopupSave = () => {
+    if (this.dataGrid && this.dataGrid.instance) {
+      this.dataGrid.instance.saveEditData();
+    }
+  };
+
+  onPopupCancel = () => {
+    if (this.dataGrid && this.dataGrid.instance) {
+      this.dataGrid.instance.cancelEditData();
+    }
+  };
+
   clearFilterDataGrid = () => {
     if (this.dataGrid && this.dataGrid.instance) {
       this.dataGrid.instance.clearFilter();
@@ -272,6 +284,30 @@ class ProductPrices extends Component {
               showTitle
               width={620}
               height={470}
+              toolbarItems={[
+                {
+                  toolbar: 'bottom',
+                  location: 'after',
+                  widget: 'dxButton',
+                  options: {
+                    text: 'Зберегти',
+                    type: 'success',
+                    stylingMode: 'contained',
+                    onClick: this.onPopupSave
+                  }
+                },
+                {
+                  toolbar: 'bottom',
+                  location: 'after',
+                  widget: 'dxButton',
+                  options: {
+                    text: 'Вийти',
+                    type: 'normal',
+                    stylingMode: 'contained',
+                    onClick: this.onPopupCancel
+                  }
+                }
+              ]}
             />
             <Form>
               <FormItem itemType="group" colCount={2} colSpan={2}>

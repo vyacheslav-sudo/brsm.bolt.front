@@ -298,8 +298,8 @@ class SubcategoryEditPopup extends React.PureComponent {
           </GroupItem>
         </Form>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 20 }}>
-          <Button text="Скасувати" stylingMode="outlined" onClick={onClose} />
-          <Button text="Зберегти" type="default" stylingMode="contained" onClick={() => onSave(this.state.editSubcategory)} />
+          <Button text="Зберегти" type="success" stylingMode="contained" onClick={() => onSave(this.state.editSubcategory)} />
+          <Button text="Вийти" type="normal" stylingMode="contained" onClick={onClose} />
         </div>
       </div>
     );

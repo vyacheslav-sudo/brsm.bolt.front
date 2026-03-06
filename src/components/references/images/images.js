@@ -10,7 +10,6 @@ import DataGrid, {
   StateStoring
 } from 'devextreme-react/data-grid';
 import Form, {
-  ButtonItem,
   Label,
   RequiredRule,
   SimpleItem
@@ -456,24 +455,21 @@ class Images extends Component {
                   <Label text="Зображення" />
                   <RequiredRule message="Зображення - обов'язкове поле" />
                 </SimpleItem>
-
-                <ButtonItem
-                  itemType="button"
-                  buttonOptions={{
-                    text: 'Зберегти',
-                    type: 'success',
-                    useSubmitBehavior: true
-                  }}
-                />
-                <ButtonItem
-                  itemType="button"
-                  buttonOptions={{
-                    text: 'Вийти',
-                    type: 'normal',
-                    onClick: this.onCloseModalLoadImage
-                  }}
-                />
               </Form>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 20 }}>
+                <Button
+                  text="Зберегти"
+                  type="success"
+                  stylingMode="contained"
+                  useSubmitBehavior={true}
+                />
+                <Button
+                  text="Вийти"
+                  type="normal"
+                  stylingMode="contained"
+                  onClick={this.onCloseModalLoadImage}
+                />
+              </div>
             </form>
           </ModalBody>
         </Modal>

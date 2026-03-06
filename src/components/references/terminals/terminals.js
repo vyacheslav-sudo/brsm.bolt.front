@@ -379,6 +379,18 @@ class Terminals extends Component {
     e.cancel = this.saveTerminal(coreApi.post('/terminal', payload));
   };
 
+  onPopupSave = () => {
+    if (this.dataGrid && this.dataGrid.instance) {
+      this.dataGrid.instance.saveEditData();
+    }
+  };
+
+  onPopupCancel = () => {
+    if (this.dataGrid && this.dataGrid.instance) {
+      this.dataGrid.instance.cancelEditData();
+    }
+  };
+
   onDownloadMenu = (row) => {
     this.props.onLoading(true);
 
@@ -791,6 +803,30 @@ class Terminals extends Component {
                 showTitle={true}
                 width={520}
                 height={420}
+                toolbarItems={[
+                  {
+                    toolbar: 'bottom',
+                    location: 'after',
+                    widget: 'dxButton',
+                    options: {
+                      text: 'Зберегти',
+                      type: 'success',
+                      stylingMode: 'contained',
+                      onClick: this.onPopupSave
+                    }
+                  },
+                  {
+                    toolbar: 'bottom',
+                    location: 'after',
+                    widget: 'dxButton',
+                    options: {
+                      text: 'Вийти',
+                      type: 'normal',
+                      stylingMode: 'contained',
+                      onClick: this.onPopupCancel
+                    }
+                  }
+                ]}
               />
               <Form>
                 <FormItem itemType="group" colCount={1} colSpan={2}>

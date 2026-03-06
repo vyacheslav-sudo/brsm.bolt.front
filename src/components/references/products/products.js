@@ -623,8 +623,8 @@ class ProductEditPopup extends React.PureComponent {
           </div>
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 20, flex: '0 0 auto' }}>
-          <Button text="Скасувати" stylingMode="outlined" onClick={onClose} />
-          <Button text="Зберегти" type="default" stylingMode="contained" onClick={() => onSave(this.state.editProduct)} />
+          <Button text="Зберегти" type="success" stylingMode="contained" onClick={() => onSave(this.state.editProduct)} />
+          <Button text="Вийти" type="normal" stylingMode="contained" onClick={onClose} />
         </div>
       </div>
     );
