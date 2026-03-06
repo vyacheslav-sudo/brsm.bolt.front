@@ -1,0 +1,74 @@
+{
+  "name": "brsm_bolt",
+  "version": "1.0.1",
+  "private": true,
+  "dependencies": {
+    "@reduxjs/toolkit": "^2.6.1",
+    "axios": "^1.13.5",
+    "bootstrap": "^5.3.3",
+    "devextreme": "^21.2.11",
+    "devextreme-react": "21.2.11",
+    "js-file-download": "^0.4.12",
+    "moment": "^2.29.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-json-to-table": "^0.1.7",
+    "react-redux": "^9.1.2",
+    "react-router-dom": "^6.30.1",
+    "reactstrap": "^9.2.3",
+    "redux": "^5.0.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "ajv": "^6.12.6",
+    "cross-env": "^5.2.0",
+    "eslint": "^8.57.1",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react": "^7.37.5",
+    "globalize": "^1.6.0",
+    "jsdom": "^26.0.0",
+    "nan": "^2.14.1",
+    "typescript": "^3.7.5",
+    "vite": "^6.1.1",
+    "vitest": "^3.0.5"
+  },
+  "scripts": {
+    "start": "vite",
+    "dev": "vite",
+    "build": "vite build",
+    "build:dev": "cross-env VITE_APP_MODE=development vite build",
+    "build:prod": "cross-env VITE_APP_MODE=production vite build",
+    "start:dev": "cross-env VITE_APP_MODE=development vite",
+    "start:prod": "cross-env VITE_APP_MODE=production vite --mode production",
+    "preview": "vite preview",
+    "docker:build:prod": "node -e \"const {execSync}=require('child_process'); const v=require('./package.json').version; execSync(`docker build --build-arg APP_ENV=production --build-arg NODE_HEAP_MB=2048 -t smartnafta/bolt.front:${v} .`, {stdio:'inherit'});\"",
+    "docker:build:dev": "node -e \"const {execSync}=require('child_process'); const v=require('./package.json').version; execSync(`docker build --build-arg APP_ENV=development --build-arg NODE_HEAP_MB=4096 -t smartnafta/bolt.front:${v}-dev .`, {stdio:'inherit'});\"",
+    "docker:push:prod": "node -e \"const {execSync}=require('child_process'); const v=require('./package.json').version; execSync(`docker push smartnafta/bolt.front:${v}`, {stdio:'inherit'});\"",
+    "docker:push:dev": "node -e \"const {execSync}=require('child_process'); const v=require('./package.json').version; execSync(`docker push smartnafta/bolt.front:${v}-dev`, {stdio:'inherit'});\"",
+    "docker:release:prod": "npm run docker:build:prod && npm run docker:push:prod",
+    "docker:release:dev": "npm run docker:build:dev && npm run docker:push:dev",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "smoke": "vitest run src/app.test.js",
+    "lint": "eslint ./src/"
+  },
+  "browserslist": {
+    "production": [
+      ">0.3%",
+      "not ie 11",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      ">0.3%",
+      "not ie 11",
+      "not dead",
+      "not op_mini all"
+    ]
+  },
+  "main": "index.js",
+  "author": "",
+  "license": "ISC"
+}

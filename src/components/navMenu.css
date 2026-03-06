@@ -1,0 +1,45 @@
+﻿a.navbar-brand {
+  white-space: normal;
+  text-align: center;
+  word-break: break-all;
+}
+
+.box-shadow {
+  box-shadow: 0 .25rem .75rem rgba(0, 0, 0, .05);
+  background-color: #fafafa;
+}
+
+.dropdown-item {
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+}
+
+.dropdown-item i {
+  margin-right: 0.2rem;
+}
+
+.dropdown-item:active {
+  background-color: transparent !important;
+  color: #212529;
+  border: none;
+}
+
+.nav-link-custom {
+  cursor: pointer;
+}
+
+.navs-link-custom {
+  cursor: pointer;
+  text-decoration: none;
+  background-color: transparent;
+  color: #7ab8eb;
+}
+
+.navs-link-custom:hover {
+  text-decoration: underline;
+}
+
+.navbar-toggler {
+  margin-right: 10px;
+}

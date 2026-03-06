@@ -1,0 +1,157 @@
+.dx-theme-generic-typography {
+    font-size: 1rem;
+}
+
+.dx-theme-generic-typography .dx-font-xl,
+.dx-theme-generic-typography h1 {
+  font-size: 2.4rem;
+}
+.dx-theme-generic-typography .dx-font-l,
+.dx-theme-generic-typography h2 {  
+  font-size: 2rem;
+}
+.dx-theme-generic-typography h3 {
+  font-size: 1.6rem;
+}
+.dx-theme-generic-typography .dx-font-m {
+  font-size: 1.4rem;
+}
+.dx-theme-generic-typography .dx-font-s,
+.dx-theme-generic-typography h4 {
+  font-size: 1.3rem;
+}
+.dx-theme-generic-typography h5 {
+  font-size: 1.15rem;
+}
+.dx-theme-generic-typography .dx-font-xs,
+.dx-theme-generic-typography h6,
+.dx-theme-generic-typography small {
+  font-size: 0.85rem;
+}
+
+.dx-widget {
+    font-size: 0.9rem;    
+}
+
+.dx-field {    
+    font-size: 1rem;
+  }
+
+.dx-button-content i {
+    font-size: 1.2rem !important;
+    width: 1.2rem !important;
+    height: 1.2rem !important;
+    line-height: 1.2rem !important;
+    background-size: 1.2rem 1.2rem !important;
+}
+
+.dx-toolbar-items-container {
+    height: 2rem !important;
+}
+
+.dx-menu-base .dx-icon {
+    width: 1rem;
+    height: 1rem;
+    line-height: 1rem;
+    background-size:  1rem 1rem;
+    font-size: 1rem;
+}
+
+.dx-icon {
+    color: #333 !important;
+}
+
+.dx-datagrid-nodata {
+    color: #333 !important;
+    font-size: 1rem;
+}
+
+.dx-datagrid-headers {
+    color: #333 !important;
+}
+
+.dx-header-row {
+    background-color: #fafafa;
+}
+
+.dx-texteditor-input,
+.dx-toolbar-item-content > div,
+.dx-item-content,
+.dx-empty-message {
+    font-size: 0.9rem !important;
+}
+
+.dx-placeholder {
+    font-size: 0.9rem;
+}
+
+.dx-field-item-label-text {
+    font-size: 0.95rem;
+}
+
+.dx-tag-content {
+    font-size: 0.8rem;
+    border-radius: 5px;    
+    margin: 5px;
+}
+
+.dx-toast-content {
+    font-size: 0.9rem;
+    padding: 10px;
+    border-radius: 10px;
+}
+
+.dx-datagrid-text-content {
+  font-size: 0.9rem;
+}
+
+.dx-data-row {
+  font-size: 0.9rem;
+}
+
+.dx-datagrid-summary-item {
+  font-weight: 600;
+}
+
+.dx-pager {
+  font-size: 0.9rem;
+}
+
+.dx-group-cell {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.dx-filter-range-content {
+  font-size: 0.9rem;
+}
+
+.dx-command-edit {
+  font-size: 0.9rem;
+}
+
+.dx-popup-title {
+  border: 0px;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.dx-toolbar-label {
+  max-width: 300px !important;
+}
+
+.dx-dialog-message {
+  font-size: 13px;
+}
+
+.dx-tab-text {
+  font-weight: bold;
+}
+
+.dx-tab-content {
+  padding: 10px;
+}
+
+.detail-tab-content {
+  padding: 12px;
+}

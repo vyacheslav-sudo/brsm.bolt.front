@@ -1,0 +1,85 @@
+#tabs-settings {
+    padding-top: 15px;
+}
+
+#tabs-settings .dx-tabs-wrapper {
+    font-size: 1rem;
+}
+
+#tabs-settings .dx-tab-text {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 5px 0px;
+    font-weight: 600;
+}
+
+.add-user {
+    font-size: 0.9rem;
+    padding: 5px 10px;
+}
+
+#userGridContainer {
+    font-size: 0.9rem;
+}
+
+#addUser .header,
+#editUser .header {
+    font-size: 1.5rem;
+    padding: 20px 0px;
+}
+
+#editUser .header-buttons {
+    padding-bottom: 20px;
+}
+
+#editUser .header-buttons .dx-button-text {
+    font-size: 0.9rem;
+}
+
+#editUser .header-buttons .dx-button {
+    margin-right: 10px;
+    padding: 3px 0px;
+}
+
+
+#user-tabs-change-password .form-change-password,
+#user-tabs-change-password .form-change-password button {
+  font-size: 0.9rem;
+}
+
+#user-tabs-change-password label,
+#user-tabs-change-password input   {
+ font-size: 0.9rem;
+}
+
+#user-tabs-change-password input {
+ max-width: 300px;
+}
+
+#user-tabs-change-password .invalid-feedback {
+ font-size: 0.7rem;
+}
+
+#user-tabs-change-password .dx-button {
+    margin-right: 10px;
+}
+
+#mainGrid {
+  display: flex;
+  flex-direction: column;
+}
+
+#mainGrid .user-list-actions {
+  order: 0;
+  margin-bottom: 0px;
+}
+
+#mainGrid .user-list-grid {
+  order: 1;
+}
+
+.pim-export-btn .dx-button-text {
+  font-size: 15px;
+  font-weight: bold;
+}

@@ -1,0 +1,225 @@
+html {
+  font-size: 15px;
+}
+
+html,
+body {
+   margin:0;
+   padding:0;
+   height:100%;  
+}
+
+@media (max-width: 768px) {
+  html {
+    font-size: 13px;
+  }
+}
+
+@media (min-width: 1600px) {
+  .container, .container-sm, .container-md, .container-lg, .container-xl {
+    max-width: 1570px;
+  }
+}
+@media (min-width: 1900px) {
+  .container, .container-sm, .container-md, .container-lg, .container-xl {
+    /* max-width: 1870px; */
+    max-width: 95%;
+  }
+}
+
+@media (max-width: 500px) {
+  .container-with-date {
+    display: unset;    
+  }
+}
+
+@media (min-width: 501px) {
+  .container-with-date {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;  
+  }
+}
+
+#root {
+   display: flex;
+   flex-direction: column;
+   height: 100%;
+ }
+ .content {
+   flex: 1 0 auto;
+ }
+ .footer {
+   flex: 0 0 auto;
+   padding: 15px 0px 10px 0px;
+ }
+
+ /* NAVS ROW */
+ 
+.top-row {
+  display: flex;
+  justify-content: space-between;  
+  align-items: center;  
+}
+
+.navsRow {    
+  font-size: 0.95rem;                   
+}
+
+.navsRowItem {
+  display: inline;
+}
+
+.navsRowItem.curr {
+  font-size: 0.9rem;
+  font-weight: bold;
+}
+
+/* Select Terminal */
+
+.top-row .dx-texteditor-input {
+  font-size: 0.85rem;
+}
+
+.dx-list-item-content {
+  font-size: 0.85rem;
+  padding: 5px !important;     
+}
+
+.sel-term {
+  position: unset !important;  
+  margin-left: 1.5rem !important;  
+}
+
+.sel-term input {
+  cursor: pointer !important;
+}
+
+.top-row .dx-field-value {
+  max-width: 12rem;
+  width: 12rem !important;
+}
+
+.modal-footer {
+  border: 0px;
+  padding-top: 0px;
+}
+
+.modal-header {
+  border: 0px;
+  padding-bottom: 0px;  
+}
+
+.grey {
+  color: #ccc;
+}
+
+#selShifts .dx-dropdowneditor-input-wrapper {
+  max-width: 15rem;
+}
+
+#selShifts .dx-texteditor.dx-editor-outlined {
+  border: 0px;
+}
+
+#selShifts .dx-texteditor-container {
+   background: #fff;
+   border: 1px solid #e8eaeb;
+   border-radius: 2px;
+}
+
+#selShifts .dx-dropdowneditor.dx-dropdowneditor-field-clickable {
+  cursor: default;
+}
+
+#selShifts input {
+  cursor:  pointer !important;
+}
+
+/* .container-date-select .dx-button-text {
+  font-size: 0.9rem;
+} */
+
+#datFromdatTo {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+#datFromdatTo .dx-datebox {
+  width: 12rem;
+}
+
+#datFromdatTo .label-date {
+  margin-right: 10px;
+}
+
+#datFromdatTo .label-date > span {
+  font-size: 0.9rem;
+  color: #999;
+  padding-left: 3px;
+}
+
+#manager-reports-default {
+  display: flex;
+  padding-top: 50px;
+  align-items: center;
+  justify-content: center
+}
+
+#manager-reports-default  span {
+  font-size: 1.4rem;
+  color: #cccccc
+}
+
+.container-custom-button .dx-button {
+  font-size: 0.9rem !important;
+}
+
+#profile-terminals {
+  padding-top: 10px;
+}
+
+#term-list.hideContent {
+  overflow: hidden;
+  max-height: 15em;
+  -webkit-transition: max-height 5s;
+	-moz-transition: max-height 5s;
+	transition: max-height 5s;
+}
+
+#term-list.showContent {  
+  max-height: 999em;
+}
+
+#profile-terminals .button-show-all-term {
+  padding-top: 5px;
+  cursor: pointer; 
+  font-weight: 600; 
+  color: #7ab8eb;
+}
+
+.fileuploader-container {
+  border: 1px solid #e6e6e6;
+  margin: 0px;
+  padding: 10px 0px 10px 0px;
+}
+
+#accept-manual-order-button {
+  background-color: #75a0ef;
+  color: #fff;
+  font-size: 10px;
+  text-transform: uppercase;
+  font-weight: bold;
+  margin-right: 0px !important;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.json-to-table td {
+  padding: 10px;
+}
+
+.json-to-table tbody {
+  border-radius: 10px;
+}

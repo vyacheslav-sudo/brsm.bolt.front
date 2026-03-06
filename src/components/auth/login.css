@@ -1,0 +1,30 @@
+
+ #loginContainer .form-login {
+    padding: 1.2rem 1rem 1.2rem 1rem;    
+  }
+
+  #loginContainer .form-login,
+  #loginContainer .form-login button {
+    font-size: 1rem;
+  }
+
+  #loginContainer h4 {
+    font-size: 1rem;
+  }
+  
+  #loginContainer .card {
+    border-radius: 1rem;
+  }
+
+  #loginContainer .card-header {
+    border-radius: 1rem 1rem 0 0;
+  }
+
+  #loginContainer label,
+  #loginContainer input   {
+    font-size: 0.9rem;
+  }
+
+  #loginContainer .invalid-feedback {
+    font-size: 0.7rem;
+  }
