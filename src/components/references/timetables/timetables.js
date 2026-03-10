@@ -120,7 +120,7 @@ function formatIntervalsForApi(intervals) {
 function buildTimetablePayload(data, intervals) {
   return {
     id: data.id,
-    regionId: data.regionId || null,
+    regionId: data.regionId == null ? null : data.regionId,
     name: data.name || '',
     description: data.description || '',
     ...formatIntervalsForApi(intervals)
@@ -247,6 +247,7 @@ class Timetables extends Component {
     super(props);
     this.nameInputRef = null;
     this.descriptionInputRef = null;
+    this.regionSelectRef = null;
 
     this.state = {
       dataGrid: [],
@@ -413,6 +414,7 @@ class Timetables extends Component {
   onCloseModal = () => {
     this.nameInputRef = null;
     this.descriptionInputRef = null;
+    this.regionSelectRef = null;
 
     this.setState({
       modalOpen: false,
@@ -429,6 +431,18 @@ class Timetables extends Component {
         [field]: value
       }
     }));
+  };
+
+  updateRegionField = (event) => {
+    const nextValue = event.target.value;
+
+    if (!nextValue) {
+      this.updateFormField('regionId', null);
+      return;
+    }
+
+    const selectedRegion = this.state.regions.find((region) => String(region.id) === nextValue);
+    this.updateFormField('regionId', selectedRegion ? selectedRegion.id : nextValue);
   };
 
   addInterval = (dayKey) => {
@@ -493,8 +507,12 @@ class Timetables extends Component {
 
   onSaveTimetable = () => {
     const { isNew, intervalsDraft } = this.state;
+    const selectedRegionId = this.regionSelectRef && this.regionSelectRef.value
+      ? ((this.state.regions.find((region) => String(region.id) === this.regionSelectRef.value) || {}).id)
+      : this.state.formData.regionId;
     const formData = {
       ...this.state.formData,
+      regionId: selectedRegionId,
       name: this.nameInputRef ? this.nameInputRef.value : this.state.formData.name,
       description: this.descriptionInputRef ? this.descriptionInputRef.value : this.state.formData.description
     };
@@ -504,7 +522,7 @@ class Timetables extends Component {
       return;
     }
 
-    if (!formData.regionId) {
+    if (formData.regionId == null) {
       notify('Вкажіть регіон', 'warning');
       return;
     }
@@ -618,8 +636,9 @@ class Timetables extends Component {
                 <select
                   className="form-select"
                   style={{ fontSize: 13 }}
-                  value={this.state.formData.regionId || ''}
-                  onChange={(event) => this.updateFormField('regionId', Number(event.target.value))}
+                  value={this.state.formData.regionId == null ? '' : String(this.state.formData.regionId)}
+                  onChange={this.updateRegionField}
+                  ref={(ref) => { this.regionSelectRef = ref; }}
                 >
                   <option value="">Оберіть регіон</option>
                   {this.state.regions.map((region) => (

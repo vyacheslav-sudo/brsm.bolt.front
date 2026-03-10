@@ -42,7 +42,7 @@ function createEditModel(item, defaultRegionId = null) {
   return {
     id: item.id,
     name: item.name || '',
-    regionId: item.regionId || defaultRegionId,
+    regionId: item.regionId == null ? defaultRegionId : item.regionId,
     position: item.position ?? 0,
     tileBgColorLight: item.tileBgColorLight || null,
     tileBgColorDark: item.tileBgColorDark || null
@@ -53,7 +53,7 @@ function buildUpdateBody(model) {
   return {
     id: model.id,
     name: String(model.name || '').trim(),
-    regionId: model.regionId || null,
+    regionId: model.regionId == null ? null : model.regionId,
     position: model.position === '' || model.position === null || model.position === undefined ? null : Number(model.position),
     tileBgColorLight: model.tileBgColorLight || null,
     tileBgColorDark: model.tileBgColorDark || null
@@ -63,7 +63,7 @@ function buildUpdateBody(model) {
 function buildCreateBody(model) {
   return {
     name: String(model.name || '').trim(),
-    regionId: model.regionId || null,
+    regionId: model.regionId == null ? null : model.regionId,
     position: model.position === '' || model.position === null || model.position === undefined ? 0 : Number(model.position),
     tileBgColorLight: model.tileBgColorLight || null,
     tileBgColorDark: model.tileBgColorDark || null
@@ -621,7 +621,7 @@ class Sections extends Component {
       await coreApi.put('/pimsection', {
         id: sectionId,
         name: detail.name,
-        regionId: detail.regionId || null,
+        regionId: detail.regionId == null ? null : detail.regionId,
         position: detail.position,
         tileBgColorLight: detail.tileBgColorLight || null,
         tileBgColorDark: detail.tileBgColorDark || null,
@@ -666,7 +666,7 @@ class Sections extends Component {
 
     this.setState({
       editPopupVisible: true,
-      editSection: createEditModel(rowData, this.state.regions[0]?.id || null)
+      editSection: createEditModel(rowData, this.state.regions.length > 0 ? this.state.regions[0].id : null)
     });
   };
 
