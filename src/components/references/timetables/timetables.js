@@ -608,6 +608,7 @@ class Timetables extends Component {
                 <input
                   type="text"
                   className="form-control"
+                  style={{ fontSize: 13 }}
                   defaultValue={this.state.formData.name || ''}
                   ref={(ref) => { this.nameInputRef = ref; }}
                 />
@@ -616,6 +617,7 @@ class Timetables extends Component {
                 <label className="form-label">Регіон</label>
                 <select
                   className="form-select"
+                  style={{ fontSize: 13 }}
                   value={this.state.formData.regionId || ''}
                   onChange={(event) => this.updateFormField('regionId', Number(event.target.value))}
                 >
@@ -633,6 +635,7 @@ class Timetables extends Component {
               <label className="form-label">Опис</label>
               <textarea
                 className="form-control"
+                style={{ fontSize: 13 }}
                 rows="2"
                 defaultValue={this.state.formData.description || ''}
                 ref={(ref) => { this.descriptionInputRef = ref; }}
