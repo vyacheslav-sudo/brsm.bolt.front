@@ -120,6 +120,15 @@ function mapTerminalRows(terminals) {
   }));
 }
 
+function getImageUrl(images, imageLinkId) {
+  if (imageLinkId === null || imageLinkId === undefined || imageLinkId === '') {
+    return null;
+  }
+
+  const image = (images || []).find((item) => String(item.id) === String(imageLinkId));
+  return image ? image.imageUrl : null;
+}
+
 function ValidationBadge({ value }) {
   if (value === true) {
     return (
@@ -496,9 +505,9 @@ class ProductEditPopup extends React.PureComponent {
   };
 
   renderImagePreview() {
-    const { imagePreviewSrc } = this.props;
+    const { images } = this.props;
     const { editProduct } = this.state;
-    const imageUrl = imagePreviewSrc(editProduct?.imageLinkId);
+    const imageUrl = getImageUrl(images, editProduct?.imageLinkId);
 
     if (!imageUrl) {
       return <span className="text-muted">Зображення не вибрано</span>;
@@ -548,7 +557,8 @@ class ProductEditPopup extends React.PureComponent {
                   dataSource: images,
                   valueExpr: 'id',
                   displayExpr: imageLookupExpr,
-                  searchEnabled: true
+                  searchEnabled: true,
+                  showClearButton: true
                 }}
               />
               <Item
@@ -642,8 +652,8 @@ class ProductEditPopup extends React.PureComponent {
         hideOnOutsideClick={false}
         showTitle
         title="Редагування продукту"
-        width={920}
-        height={760}
+        width={() => Math.min(window.innerWidth - 24, 920)}
+        height={() => Math.min(window.innerHeight - 24, 1020)}
         contentRender={this.renderContent}
       />
     );
@@ -968,8 +978,7 @@ class Products extends Component {
   };
 
   imagePreviewSrc = (imageLinkId) => {
-    const image = this.state.images.find((item) => item.id === imageLinkId);
-    return image ? image.imageUrl : null;
+    return getImageUrl(this.state.images, imageLinkId);
   };
 
   imageLookupExpr = (item) => {
