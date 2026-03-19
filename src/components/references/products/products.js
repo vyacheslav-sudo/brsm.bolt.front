@@ -58,6 +58,7 @@ function normalizeProduct(item) {
     isValid: item.isValid,
     validationDescriptionList: item.validationDescriptionList || [],
     barcodes: item.barcodes || [],
+    localizations: item.localizations || [],
     subCategories: item.subCategories || [],
     terminals: item.terminals || [],
     priceHistory: item.priceHistory || []
@@ -120,6 +121,32 @@ function mapTerminalRows(terminals) {
   }));
 }
 
+function mapLocalizationRows(localizations) {
+  return (localizations || []).map((item, index) => ({
+    ...item,
+    __key: item.id || `${item.languageCode || 'localization'}-${index}`
+  }));
+}
+
+function normalizeLanguageCode(value) {
+  const raw = String(value || '').trim();
+  if (!raw) {
+    return '';
+  }
+
+  const lower = raw.toLowerCase();
+  if (lower === 'ua-ua') {
+    return 'uk-UA';
+  }
+
+  const parts = raw.split('-');
+  if (parts.length !== 2) {
+    return raw;
+  }
+
+  return `${parts[0].toLowerCase()}-${parts[1].toUpperCase()}`;
+}
+
 function getImageUrl(images, imageLinkId) {
   if (imageLinkId === null || imageLinkId === undefined || imageLinkId === '') {
     return null;
@@ -174,7 +201,8 @@ class ProductDetail extends React.PureComponent {
     detail: null,
     loading: false,
     savingBarcodes: false,
-    savingTerminals: false
+    savingTerminals: false,
+    savingLocalizations: false
   };
 
   componentDidMount() {
@@ -187,7 +215,8 @@ class ProductDetail extends React.PureComponent {
         detail: null,
         loading: false,
         savingBarcodes: false,
-        savingTerminals: false
+        savingTerminals: false,
+        savingLocalizations: false
       });
       this.ensureLoaded();
     }
@@ -211,6 +240,10 @@ class ProductDetail extends React.PureComponent {
     this.setState({
       detail: detail || null,
       loading: false
+    }, () => {
+      if (this.props.onUpdateDimensions) {
+        this.props.onUpdateDimensions();
+      }
     });
   };
 
@@ -303,6 +336,60 @@ class ProductDetail extends React.PureComponent {
     e.cancel = this.saveTerminalRows(rows);
   };
 
+  saveLocalizationRows = async (rows) => {
+    const localizations = rows.map((item) => ({
+      id: item.id || null,
+      languageCode: normalizeLanguageCode(item.languageCode),
+      name: String(item.name || '').trim(),
+      description: String(item.description || '').trim() || null
+    }));
+
+    if (localizations.some((item) => !item.languageCode || !item.name)) {
+      notify('Заповніть мову та назву для кожного рядка', 'warning');
+      return true;
+    }
+
+    if (localizations.some((item) => !/^[a-z]{2}-[A-Z]{2}$/.test(item.languageCode))) {
+      notify('Код мови має бути у форматі xx-YY, наприклад uk-UA', 'warning');
+      return true;
+    }
+
+    const languageCodes = localizations.map((item) => item.languageCode.toLowerCase());
+    if (new Set(languageCodes).size !== languageCodes.length) {
+      notify('Локалізація з однаковим кодом мови не може бути додана двічі', 'warning');
+      return true;
+    }
+
+    this.setState({ savingLocalizations: true });
+    const detail = await this.props.onSaveLocalizations(this.props.productId, localizations);
+    this.setState((prevState) => ({
+      detail: detail || prevState.detail,
+      savingLocalizations: false
+    }));
+
+    return !detail;
+  };
+
+  onLocalizationInserting = (e) => {
+    e.cancel = this.saveLocalizationRows([
+      ...mapLocalizationRows(this.state.detail?.localizations),
+      e.data
+    ]);
+  };
+
+  onLocalizationUpdating = (e) => {
+    const rows = mapLocalizationRows(this.state.detail?.localizations).map((item) => (
+      item.__key === e.oldData.__key ? { ...item, ...e.newData } : item
+    ));
+
+    e.cancel = this.saveLocalizationRows(rows);
+  };
+
+  onLocalizationRemoving = (e) => {
+    const rows = mapLocalizationRows(this.state.detail?.localizations).filter((item) => item.__key !== e.data.__key);
+    e.cancel = this.saveLocalizationRows(rows);
+  };
+
   onTerminalEditorPreparing = (e) => {
     if (e.parentType !== 'dataRow' || e.dataField !== 'terminalId') {
       return;
@@ -313,6 +400,12 @@ class ProductDetail extends React.PureComponent {
     }
 
     e.editorOptions.disabled = true;
+  };
+
+  handleContentReady = () => {
+    if (this.props.onUpdateDimensions) {
+      this.props.onUpdateDimensions();
+    }
   };
 
   renderValidation(detail) {
@@ -342,8 +435,34 @@ class ProductDetail extends React.PureComponent {
     );
   }
 
+  renderLocalizations(detail) {
+    return (
+      <div className="detail-tab-content">
+        <DataGrid
+          dataSource={mapLocalizationRows(detail.localizations)}
+          keyExpr="__key"
+          columnAutoWidth
+          showBorders
+          rowAlternationEnabled
+          onContentReady={this.handleContentReady}
+          onRowInserting={this.onLocalizationInserting}
+          onRowUpdating={this.onLocalizationUpdating}
+          onRowRemoving={this.onLocalizationRemoving}
+        >
+          <Paging defaultPageSize={10} />
+          <Pager showPageSizeSelector allowedPageSizes={[10, 20, 50]} showInfo />
+          <Editing mode="row" useIcons allowAdding allowUpdating allowDeleting />
+          <Column dataField="languageCode" caption="Код мови" validationRules={[{ type: 'required', message: 'Вкажіть код мови' }]} />
+          <Column dataField="name" caption="Назва" validationRules={[{ type: 'required', message: 'Вкажіть назву' }]} />
+          <Column dataField="description" caption="Опис" />
+          <Column dataField="editDate" caption="Дата редаг." dataType="datetime" allowEditing={false} />
+        </DataGrid>
+      </div>
+    );
+  }
+
   render() {
-    const { detail, loading, savingBarcodes, savingTerminals } = this.state;
+    const { detail, loading, savingBarcodes, savingTerminals, savingLocalizations } = this.state;
     const { terminals, timetables, terminalLookupExpr, timetableLookupExpr } = this.props;
 
     if (loading || !detail) {
@@ -355,7 +474,7 @@ class ProductDetail extends React.PureComponent {
         <div style={{ marginBottom: 10 }}>
           <b>Деталі продукту</b>
         </div>
-        <TabPanel deferRendering={false}>
+        <TabPanel deferRendering={false} onContentReady={this.handleContentReady} onSelectionChanged={this.handleContentReady}>
           <TabPanelItem
             title="Штрихкоди"
             render={() => (
@@ -366,6 +485,7 @@ class ProductDetail extends React.PureComponent {
                   columnAutoWidth
                   showBorders
                   rowAlternationEnabled
+                  onContentReady={this.handleContentReady}
                   onRowInserting={this.onBarcodeInserting}
                   onRowUpdating={this.onBarcodeUpdating}
                   onRowRemoving={this.onBarcodeRemoving}
@@ -383,7 +503,7 @@ class ProductDetail extends React.PureComponent {
             title="Підкатегорії"
             render={() => (
               <div className="detail-tab-content">
-                <DataGrid dataSource={detail.subCategories || []} keyExpr="id" columnAutoWidth showBorders rowAlternationEnabled>
+                <DataGrid dataSource={detail.subCategories || []} keyExpr="id" columnAutoWidth showBorders rowAlternationEnabled onContentReady={this.handleContentReady}>
                   <Paging defaultPageSize={10} />
                   <Pager showPageSizeSelector allowedPageSizes={[10, 20, 50]} showInfo />
                   <Column dataField="subCategoryId" caption="ID" width={90} />
@@ -393,6 +513,7 @@ class ProductDetail extends React.PureComponent {
               </div>
             )}
           />
+          <TabPanelItem title="Локалізації" render={() => this.renderLocalizations(detail)} />
           <TabPanelItem
             title="Термінали"
             render={() => (
@@ -403,6 +524,7 @@ class ProductDetail extends React.PureComponent {
                   columnAutoWidth
                   showBorders
                   rowAlternationEnabled
+                  onContentReady={this.handleContentReady}
                   onEditorPreparing={this.onTerminalEditorPreparing}
                   onRowInserting={this.onTerminalInserting}
                   onRowUpdating={this.onTerminalUpdating}
@@ -440,7 +562,7 @@ class ProductDetail extends React.PureComponent {
             title="Історія цін"
             render={() => (
               <div className="detail-tab-content">
-                <DataGrid dataSource={detail.priceHistory || []} keyExpr="id" columnAutoWidth showBorders rowAlternationEnabled>
+                <DataGrid dataSource={detail.priceHistory || []} keyExpr="id" columnAutoWidth showBorders rowAlternationEnabled onContentReady={this.handleContentReady}>
                   <Paging defaultPageSize={10} />
                   <Pager showPageSizeSelector allowedPageSizes={[10, 20, 50]} showInfo />
                   <Column dataField="terminalId" caption="ID АЗК" width={90} />
@@ -456,7 +578,7 @@ class ProductDetail extends React.PureComponent {
           />
           <TabPanelItem title="Валідація" render={() => this.renderValidation(detail)} />
         </TabPanel>
-        {(savingBarcodes || savingTerminals) && (
+        {(savingBarcodes || savingTerminals || savingLocalizations) && (
           <div style={{ marginTop: 12, color: '#5c6f82' }}>Збереження змін...</div>
         )}
       </div>
@@ -752,12 +874,14 @@ class ProductsGrid extends React.PureComponent {
         productId={product?.id}
         onLoad={this.props.onLoadDetail}
         onSaveBarcodes={this.props.onSaveBarcodes}
+        onSaveLocalizations={this.props.onSaveLocalizations}
         onSaveTerminals={this.props.onSaveTerminals}
         terminals={this.props.terminals}
         timetables={this.props.timetables}
         terminalLookupExpr={this.props.terminalLookupExpr}
         timetableLookupExpr={this.props.timetableLookupExpr}
         measureLookupExpr={this.props.measureLookupExpr}
+        onUpdateDimensions={this.refreshGridDimensions}
       />
     );
   };
@@ -977,6 +1101,55 @@ class Products extends Component {
     }
   };
 
+  saveProductLocalizations = async (productId, localizations) => {
+    this.props.onLoading(true);
+
+    try {
+      const detail = await this.loadProductDetail(productId);
+      if (!detail) {
+        return null;
+      }
+
+      await coreApi.put('/pimproduct', {
+        id: productId,
+        localName: detail.localName || '',
+        localDescription: detail.localDescription || '',
+        imageLinkId: detail.imageLinkId || null,
+        vatTag: detail.vatTag || null,
+        deleted: Boolean(detail.deleted),
+        alcohol: Boolean(detail.alcohol),
+        tobacco: Boolean(detail.tobacco),
+        isMeasured: Boolean(detail.isMeasured),
+        productMainMeasure: detail.productMainMeasure || null,
+        productMeasureValue: detail.productMeasureValue === '' ? null : detail.productMeasureValue,
+        sellingUnit: detail.sellingUnit || null,
+        orderQuantityLimit: detail.orderQuantityLimit === '' ? null : detail.orderQuantityLimit,
+        weightGrossGram: detail.weightGrossGram === '' ? null : detail.weightGrossGram,
+        subCategories: (detail.subCategories || []).map((item) => item.subCategoryId),
+        localizations
+      });
+      delete this.productDetailsCache[productId];
+      notify('Локалізації збережено', 'success', 1200);
+      return await this.loadProductDetail(productId);
+    } catch (error) {
+      if (error.response && error.response.data && error.response.data.message) {
+        const message = error.response.data.message;
+        const lower = String(message || '').toLowerCase();
+        if (lower.includes('localizations_language_code') || lower.includes('foreign key')) {
+          notify('Невірний код мови. Використай існуючий код, наприклад uk-UA', 'error');
+        } else {
+          notify(message, 'error');
+        }
+      } else {
+        notify('Не вдалося зберегти локалізації', 'error');
+      }
+
+      return null;
+    } finally {
+      this.props.onLoading(false);
+    }
+  };
+
   imagePreviewSrc = (imageLinkId) => {
     return getImageUrl(this.state.images, imageLinkId);
   };
@@ -1105,6 +1278,7 @@ class Products extends Component {
           onOpenEdit={this.handleOpenEdit}
           onLoadDetail={this.loadProductDetail}
           onSaveBarcodes={this.saveProductBarcodes}
+          onSaveLocalizations={this.saveProductLocalizations}
           onSaveTerminals={this.saveProductTerminals}
           terminalLookupExpr={this.terminalLookupExpr}
           timetableLookupExpr={this.timetableLookupExpr}

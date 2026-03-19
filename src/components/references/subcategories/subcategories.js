@@ -35,6 +35,7 @@ const MEASURE_LABELS = {
 function normalizeSubcategory(item) {
   return {
     ...item,
+    localizations: item.localizations || [],
     terminals: item.terminals || [],
     product: item.product || []
   };
@@ -78,11 +79,38 @@ function mapTerminalRows(terminals) {
   }));
 }
 
+function mapLocalizationRows(localizations) {
+  return (localizations || []).map((item, index) => ({
+    ...item,
+    __key: item.id || `${item.languageCode || 'localization'}-${index}`
+  }));
+}
+
+function normalizeLanguageCode(value) {
+  const raw = String(value || '').trim();
+  if (!raw) {
+    return '';
+  }
+
+  const lower = raw.toLowerCase();
+  if (lower === 'ua-ua') {
+    return 'uk-UA';
+  }
+
+  const parts = raw.split('-');
+  if (parts.length !== 2) {
+    return raw;
+  }
+
+  return `${parts[0].toLowerCase()}-${parts[1].toUpperCase()}`;
+}
+
 class SubcategoryDetail extends React.PureComponent {
   state = {
     detail: null,
     loading: false,
-    savingTerminals: false
+    savingTerminals: false,
+    savingLocalizations: false
   };
 
   componentDidMount() {
@@ -94,7 +122,8 @@ class SubcategoryDetail extends React.PureComponent {
       this.setState({
         detail: null,
         loading: false,
-        savingTerminals: false
+        savingTerminals: false,
+        savingLocalizations: false
       });
       this.ensureLoaded();
     }
@@ -118,6 +147,10 @@ class SubcategoryDetail extends React.PureComponent {
     this.setState({
       detail: detail || null,
       loading: false
+    }, () => {
+      if (this.props.onUpdateDimensions) {
+        this.props.onUpdateDimensions();
+      }
     });
   };
 
@@ -164,6 +197,65 @@ class SubcategoryDetail extends React.PureComponent {
     e.cancel = this.saveTerminalRows(rows);
   };
 
+  saveLocalizationRows = async (rows) => {
+    const localizations = rows.map((item) => ({
+      id: item.id || null,
+      languageCode: normalizeLanguageCode(item.languageCode),
+      name: String(item.name || '').trim()
+    }));
+
+    if (localizations.some((item) => !item.languageCode || !item.name)) {
+      notify('Заповніть мову та назву для кожного рядка', 'warning');
+      return true;
+    }
+
+    if (localizations.some((item) => !/^[a-z]{2}-[A-Z]{2}$/.test(item.languageCode))) {
+      notify('Код мови має бути у форматі xx-YY, наприклад uk-UA', 'warning');
+      return true;
+    }
+
+    const languageCodes = localizations.map((item) => item.languageCode.toLowerCase());
+    if (new Set(languageCodes).size !== languageCodes.length) {
+      notify('Локалізація з однаковим кодом мови не може бути додана двічі', 'warning');
+      return true;
+    }
+
+    this.setState({ savingLocalizations: true });
+    const detail = await this.props.onSaveLocalizations(this.props.subcategoryId, localizations);
+    this.setState((prevState) => ({
+      detail: detail || prevState.detail,
+      savingLocalizations: false
+    }));
+
+    return !detail;
+  };
+
+  onLocalizationInserting = (e) => {
+    e.cancel = this.saveLocalizationRows([
+      ...mapLocalizationRows(this.state.detail?.localizations),
+      e.data
+    ]);
+  };
+
+  onLocalizationUpdating = (e) => {
+    const rows = mapLocalizationRows(this.state.detail?.localizations).map((item) => (
+      item.__key === e.oldData.__key ? { ...item, ...e.newData } : item
+    ));
+
+    e.cancel = this.saveLocalizationRows(rows);
+  };
+
+  onLocalizationRemoving = (e) => {
+    const rows = mapLocalizationRows(this.state.detail?.localizations).filter((item) => item.__key !== e.data.__key);
+    e.cancel = this.saveLocalizationRows(rows);
+  };
+
+  handleContentReady = () => {
+    if (this.props.onUpdateDimensions) {
+      this.props.onUpdateDimensions();
+    }
+  };
+
   renderTerminals = (detail) => (
     <div className="detail-tab-content">
       <DataGrid
@@ -172,6 +264,7 @@ class SubcategoryDetail extends React.PureComponent {
         columnAutoWidth
         showBorders
         rowAlternationEnabled
+        onContentReady={this.handleContentReady}
         onRowInserting={this.onTerminalInserting}
         onRowUpdating={this.onTerminalUpdating}
         onRowRemoving={this.onTerminalRemoving}
@@ -207,6 +300,7 @@ class SubcategoryDetail extends React.PureComponent {
         columnAutoWidth
         showBorders
         rowAlternationEnabled
+        onContentReady={this.handleContentReady}
       >
         <Paging defaultPageSize={10} />
         <Pager showPageSizeSelector allowedPageSizes={[10, 20, 50]} showInfo />
@@ -221,8 +315,31 @@ class SubcategoryDetail extends React.PureComponent {
     </div>
   );
 
+  renderLocalizations = (detail) => (
+    <div className="detail-tab-content">
+      <DataGrid
+        dataSource={mapLocalizationRows(detail.localizations)}
+        keyExpr="__key"
+        columnAutoWidth
+        showBorders
+        rowAlternationEnabled
+        onContentReady={this.handleContentReady}
+        onRowInserting={this.onLocalizationInserting}
+        onRowUpdating={this.onLocalizationUpdating}
+        onRowRemoving={this.onLocalizationRemoving}
+      >
+        <Paging defaultPageSize={10} />
+        <Pager showPageSizeSelector allowedPageSizes={[10, 20, 50]} showInfo />
+        <Editing mode="row" useIcons allowAdding allowUpdating allowDeleting />
+        <Column dataField="languageCode" caption="Код мови" validationRules={[{ type: 'required', message: 'Вкажіть код мови' }]} />
+        <Column dataField="name" caption="Назва" validationRules={[{ type: 'required', message: 'Вкажіть назву' }]} />
+        <Column dataField="editDate" caption="Дата редаг." dataType="datetime" allowEditing={false} />
+      </DataGrid>
+    </div>
+  );
+
   render() {
-    const { detail, loading, savingTerminals } = this.state;
+    const { detail, loading, savingTerminals, savingLocalizations } = this.state;
 
     if (loading || !detail) {
       return <div style={{ padding: 16 }}>Завантаження...</div>;
@@ -233,11 +350,12 @@ class SubcategoryDetail extends React.PureComponent {
         <div style={{ marginBottom: 10 }}>
           <b>Деталі підкатегорії</b>
         </div>
-        <TabPanel deferRendering={false}>
+        <TabPanel deferRendering={false} onContentReady={this.handleContentReady} onSelectionChanged={this.handleContentReady}>
           <TabPanelItem title="Термінали" render={() => this.renderTerminals(detail)} />
           <TabPanelItem title="Продукти" render={() => this.renderProducts(detail)} />
+          <TabPanelItem title="Локалізації" render={() => this.renderLocalizations(detail)} />
         </TabPanel>
-        {savingTerminals && (
+        {(savingTerminals || savingLocalizations) && (
           <div style={{ marginTop: 12, color: '#5c6f82' }}>Збереження змін...</div>
         )}
       </div>
@@ -340,6 +458,12 @@ class SubcategoriesGrid extends React.PureComponent {
     }
   };
 
+  refreshGridDimensions = () => {
+    if (this.dataGrid && this.dataGrid.instance) {
+      this.dataGrid.instance.updateDimensions();
+    }
+  };
+
   onToolbarPreparing = (e) => {
     const exportButton = e.toolbarOptions.items.find((item) => item.name === 'exportButton');
     const exportIndex = e.toolbarOptions.items.indexOf(exportButton);
@@ -403,9 +527,11 @@ class SubcategoriesGrid extends React.PureComponent {
       <SubcategoryDetail
         subcategoryId={subcategory?.id}
         onLoad={this.props.onLoadDetail}
+        onSaveLocalizations={this.props.onSaveLocalizations}
         onSaveTerminals={this.props.onSaveTerminals}
         terminals={this.props.terminals}
         terminalLookupExpr={this.props.terminalLookupExpr}
+        onUpdateDimensions={this.refreshGridDimensions}
       />
     );
   };
@@ -567,6 +693,38 @@ class Subcategories extends Component {
     }
   };
 
+  saveSubcategoryLocalizations = async (subcategoryId, localizations) => {
+    this.props.onLoading(true);
+
+    try {
+      const detail = await this.loadSubcategoryDetail(subcategoryId);
+      if (!detail) {
+        return null;
+      }
+
+      await coreApi.put('/pimsubcategory', {
+        id: subcategoryId,
+        localName: detail.localName || '',
+        categoryId: detail.categoryId || null,
+        localizations
+      });
+      delete this.subcategoryDetailsCache[subcategoryId];
+      notify('Р›РѕРєР°Р»С–Р·Р°С†С–С— Р·Р±РµСЂРµР¶РµРЅРѕ', 'success', 1200);
+      return await this.loadSubcategoryDetail(subcategoryId);
+    } catch (error) {
+      const message = this.getErrorMessage(error, 'РќРµ РІРґР°Р»РѕСЃСЏ Р·Р±РµСЂРµРіС‚Рё Р»РѕРєР°Р»С–Р·Р°С†С–С—');
+      const lower = String(message || '').toLowerCase();
+      if (lower.includes('localizations_language_code') || lower.includes('foreign key')) {
+        notify('РќРµРІС–СЂРЅРёР№ РєРѕРґ РјРѕРІРё. Р’РёРєРѕСЂРёСЃС‚Р°Р№ С–СЃРЅСѓСЋС‡РёР№ РєРѕРґ, РЅР°РїСЂРёРєР»Р°Рґ uk-UA', 'error');
+      } else {
+        notify(message, 'error');
+      }
+      return null;
+    } finally {
+      this.props.onLoading(false);
+    }
+  };
+
   handleGridRef = (ref) => {
     this.dataGrid = ref;
   };
@@ -684,6 +842,7 @@ class Subcategories extends Component {
           onOpenEdit={this.openEditPopup}
           onDelete={this.deleteSubcategory}
           onLoadDetail={this.loadSubcategoryDetail}
+          onSaveLocalizations={this.saveSubcategoryLocalizations}
           onSaveTerminals={this.saveSubcategoryTerminals}
           terminalLookupExpr={this.terminalLookupExpr}
         />
