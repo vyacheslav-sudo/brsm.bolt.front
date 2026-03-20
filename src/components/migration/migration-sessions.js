@@ -372,7 +372,7 @@ class MigrationSessionDetail extends Component {
 class MigrationSessions extends Component {
   state = {
     dateFrom: Moment(new Date()).add(-3, 'days'),
-    dateTo: Moment(new Date()),
+    dateTo: Moment(new Date()).add(1, 'days'),
     sessions: [],
     regions: [],
     statusOptions: [],
