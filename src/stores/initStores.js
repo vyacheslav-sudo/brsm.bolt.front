@@ -159,6 +159,13 @@ export const routesStore = [
     access: {
       allow: [1, 2]
     }
+  },
+  {
+    id: 22,
+    path: '/orders-update',
+    title: '\u0417\u043c\u0456\u043d\u0430 \u0437\u0430\u043c\u043e\u0432\u043b\u0435\u043d\u043d\u044f',
+    nav: [0],
+    notAuth: true
   }
 ];
 
@@ -176,7 +183,8 @@ export const routePaths = {
   boltOrders: '/bolt-orders',
   images: '/images',
   timetables: '/timetables',
-  migrationSessions: '/migration-sessions'
+  migrationSessions: '/migration-sessions',
+  ordersUpdate: '/orders-update'
 };
 
 export const routeByPath = routesStore.reduce((acc, route) => {

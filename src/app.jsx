@@ -16,6 +16,7 @@ import Categories from './components/references/categories/categories';
 import Subcategories from './components/references/subcategories/subcategories';
 import Timetables from './components/references/timetables/timetables';
 import BoltOrders from './components/orders/bolt-orders';
+import OrdersUpdate from './components/orders/orders-update/orders-update';
 import Images from './components/references/images/images';
 import MigrationSessions from './components/migration/migration-sessions';
 
@@ -44,6 +45,7 @@ const App = () => (
       <Route path={routePaths.subcategories} element={<Subcategories />} />
       <Route path={routePaths.timetables} element={<Timetables />} />
       <Route path={routePaths.boltOrders} element={<BoltOrders />} />
+      <Route path={routePaths.ordersUpdate} element={<OrdersUpdate />} />
       <Route path={routePaths.migrationSessions} element={<MigrationSessions />} />
       <Route path={routePaths.images} element={<Images />} />
       <Route path="/404" element={<NotFound />} />

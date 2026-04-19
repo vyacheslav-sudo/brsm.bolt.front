@@ -44,6 +44,7 @@ class NavMenu extends Component {
     const boltOrdersRoute = routeByPath[routePaths.boltOrders];
     const migrationSessionsRoute = routeByPath[routePaths.migrationSessions];
     const imagesRoute = routeByPath[routePaths.images];
+    const ordersUpdateRoute = routeByPath[routePaths.ordersUpdate];
 
     return (
       <header>
@@ -81,6 +82,7 @@ class NavMenu extends Component {
                 </UncontrolledDropdown> : <></>}
               {[1].includes(this.props.auth.UserType) ? <NavItem><NavLink onClick={this.onRoute.bind(this, usersRoute.path)} className="text-dark nav-link-custom">{usersRoute.title}</NavLink></NavItem> : <></>}
               </> : <></> }
+              {!this.props.auth.isAuth ? <NavItem><NavLink onClick={this.onRoute.bind(this, ordersUpdateRoute.path)} className="text-dark nav-link-custom">{ordersUpdateRoute.title}</NavLink></NavItem> : <></>}
               </ul>
 
               <ul className="navbar-nav" hidden={!this.props.auth.isAuth}>

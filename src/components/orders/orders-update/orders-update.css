@@ -1,0 +1,149 @@
+#orderFindContainer .form-order-find {
+  padding: 1.2rem 1rem 1.2rem 1rem;
+}
+
+#orderFindContainer .form-order-find,
+#orderFindContainer .form-order-find button {
+  font-size: 1rem;
+}
+
+#orderFindContainer h4 {
+  font-size: 1rem;
+}
+
+#orderFindContainer .card {
+  border-radius: 1rem;
+}
+
+#orderFindContainer .card-header {
+  border-radius: 1rem 1rem 0 0;
+}
+
+#orderFindContainer label,
+#orderFindContainer input {
+  font-size: 0.9rem;
+}
+
+#orderFindContainer .invalid-feedback {
+  font-size: 0.7rem;
+}
+
+.orders-update-root {
+  padding: 10px 15px 40px 15px;
+}
+
+.orders-update-header {
+  margin-bottom: 12px;
+}
+
+.orders-update-header h4 {
+  margin: 0 0 6px 0;
+}
+
+.orders-update-header .meta {
+  font-size: 13px;
+  color: #555;
+}
+
+.orders-update-header .meta b {
+  color: #222;
+}
+
+.orders-update-status-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-left: 6px;
+  background: #e9ecef;
+  color: #343a40;
+}
+
+.orders-update-status-badge.received {
+  background: #d1e7dd;
+  color: #0f5132;
+}
+
+.orders-update-status-badge.cancelled {
+  background: #f8d7da;
+  color: #842029;
+}
+
+.orders-update-summary {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.orders-update-summary .summary-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 18px;
+}
+
+.orders-update-summary .summary-cell {
+  display: flex;
+  flex-direction: column;
+  min-width: 120px;
+}
+
+.orders-update-summary .summary-cell .label {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #6c757d;
+  letter-spacing: 0.3px;
+}
+
+.orders-update-summary .summary-cell .value {
+  font-size: 18px;
+  font-weight: 600;
+  color: #212529;
+}
+
+.orders-update-summary .summary-cell.ok .value {
+  color: #0f5132;
+}
+
+.orders-update-summary .summary-cell.over .value {
+  color: #842029;
+}
+
+.orders-update-summary .summary-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+
+.orders-update-row-new td {
+  background-color: #e6f4ea !important;
+}
+
+.orders-update-row-modified td {
+  background-color: #fff8e1 !important;
+}
+
+.orders-update-menu-price {
+  margin-top: 6px;
+  font-size: 13px;
+  color: #0f5132;
+}
+
+.orders-update-inline-hint {
+  font-size: 12px;
+  color: #6c757d;
+  margin-top: 4px;
+}
+
+.orders-update-tab-json {
+  padding: 16px;
+  max-width: 100%;
+  overflow-x: auto;
+}
