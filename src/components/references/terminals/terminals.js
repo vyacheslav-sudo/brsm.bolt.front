@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import { Button } from 'devextreme-react/button';
 import DateBox from 'devextreme-react/date-box';
 import DataGrid, {
   Button as GridButton,
@@ -19,6 +20,7 @@ import { Item as FormItem } from 'devextreme-react/form';
 import { TabPanel, Item as TabPanelItem } from 'devextreme-react/tab-panel';
 import notify from 'devextreme/ui/notify';
 import fileDownload from 'js-file-download';
+import { Modal, ModalBody, ModalFooter } from 'reactstrap';
 import { checkAccessRoute } from '../../../actions/auth';
 import { coreApi } from '../../../api/clientApi';
 
@@ -145,7 +147,9 @@ class Terminals extends Component {
       dataGrid: [],
       regions: [],
       scheduleDrafts: {},
-      detailTabIndex: {}
+      detailTabIndex: {},
+      modalResetExchangeState: false,
+      resetExchangeTerminal: null
     };
   }
 
@@ -404,6 +408,70 @@ class Terminals extends Component {
     }).catch((error) => {
       this.props.onLoading(false);
       notify(this.getErrorMessage(error, 'Не вдалося завантажити меню'), 'error');
+    });
+  };
+
+  onOpenResetExchangeStateModal = (row) => {
+    this.setState({
+      modalResetExchangeState: true,
+      resetExchangeTerminal: row
+    });
+  };
+
+  onCloseResetExchangeStateModal = () => {
+    this.setState({
+      modalResetExchangeState: false,
+      resetExchangeTerminal: null
+    });
+  };
+
+  getResetExchangeStateResult(data, terminalId) {
+    let result = data;
+
+    if (typeof result === 'string') {
+      try {
+        result = JSON.parse(result);
+      } catch (e) {
+        result = {};
+      }
+    }
+
+    result = result || {};
+
+    return {
+      terminalId: result.terminalId ?? result.TerminalId ?? terminalId,
+      productsReset: result.productsReset ?? result.ProductsReset ?? 0,
+      pricesReset: result.pricesReset ?? result.PricesReset ?? 0,
+      availabilitiesReset: result.availabilitiesReset ?? result.AvailabilitiesReset ?? 0,
+      discountsReset: result.discountsReset ?? result.DiscountsReset ?? 0
+    };
+  }
+
+  onConfirmResetExchangeState = () => {
+    const terminal = this.state.resetExchangeTerminal;
+    if (!terminal) {
+      return;
+    }
+
+    this.setState({
+      modalResetExchangeState: false,
+      resetExchangeTerminal: null
+    });
+
+    this.props.onLoading(true);
+
+    coreApi.post(`/terminal/${terminal.id}/ResetExchangeState`).then((response) => {
+      const result = this.getResetExchangeStateResult(response.data, terminal.id);
+
+      this.props.onLoading(false);
+      notify(
+        `Скинуто обмін для АЗК ${result.terminalId}. Товари: ${result.productsReset}, ціни: ${result.pricesReset}, доступність: ${result.availabilitiesReset}, знижки: ${result.discountsReset}`,
+        'success',
+        5000
+      );
+    }).catch((error) => {
+      this.props.onLoading(false);
+      notify(this.getErrorMessage(error, 'Не вдалося скинути стан обміну та міграцій'), 'error');
     });
   };
 
@@ -764,6 +832,8 @@ class Terminals extends Component {
   };
 
   render() {
+    const resetExchangeTerminal = this.state.resetExchangeTerminal;
+
     return (
       <div style={{ marginTop: '20px' }}>
         <div style={{ marginTop: '20px' }}>
@@ -841,12 +911,17 @@ class Terminals extends Component {
                 </FormItem>
               </Form>
             </Editing>
-            <Column type="buttons" width={110} fixed={true} fixedPosition="right">
+            <Column type="buttons" width={140} fixed={true} fixedPosition="right">
               <GridButton name="edit" />
               <GridButton
                 hint="Завантажити меню JSON"
                 icon="download"
                 onClick={(e) => this.onDownloadMenu(e.row.data)}
+              />
+              <GridButton
+                hint="Скинути стан обміну та міграцій"
+                icon="revert"
+                onClick={(e) => this.onOpenResetExchangeStateModal(e.row.data)}
               />
             </Column>
             <Column dataField="id" caption="АЗК ID" width={100} />
@@ -864,6 +939,28 @@ class Terminals extends Component {
             <Column dataField="editDate" caption="Дата редаг." dataType="datetime" />
             <MasterDetail enabled={true} component={this.renderTerminalDetails} />
           </DataGrid>
+
+          <Modal isOpen={this.state.modalResetExchangeState}>
+            <ModalBody>
+              Скинути стан обміну та міграцій для терміналу{' '}
+              <b>{resetExchangeTerminal ? (resetExchangeTerminal.name || resetExchangeTerminal.id) : ''}</b>?
+            </ModalBody>
+            <ModalFooter>
+              <Button
+                text="Так"
+                type="danger"
+                stylingMode="contained"
+                onClick={this.onConfirmResetExchangeState}
+              />
+              {' '}
+              <Button
+                text="Ні"
+                type="normal"
+                stylingMode="contained"
+                onClick={this.onCloseResetExchangeStateModal}
+              />
+            </ModalFooter>
+          </Modal>
         </div>
       </div>
     );
