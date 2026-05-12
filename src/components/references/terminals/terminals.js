@@ -17,10 +17,12 @@ import DataGrid, {
   StateStoring
 } from 'devextreme-react/data-grid';
 import { Item as FormItem } from 'devextreme-react/form';
+import { CheckBox } from 'devextreme-react/check-box';
+import { SelectBox } from 'devextreme-react/select-box';
 import { TabPanel, Item as TabPanelItem } from 'devextreme-react/tab-panel';
 import notify from 'devextreme/ui/notify';
 import fileDownload from 'js-file-download';
-import { Modal, ModalBody, ModalFooter } from 'reactstrap';
+import { Modal, ModalBody, ModalFooter, ModalHeader } from 'reactstrap';
 import { checkAccessRoute } from '../../../actions/auth';
 import { coreApi } from '../../../api/clientApi';
 
@@ -149,7 +151,12 @@ class Terminals extends Component {
       scheduleDrafts: {},
       detailTabIndex: {},
       modalResetExchangeState: false,
-      resetExchangeTerminal: null
+      resetExchangeTerminal: null,
+      modalCopyBindings: false,
+      copyTargetTerminal: null,
+      copySourceTerminalId: null,
+      copyProducts: true,
+      copySubCategories: true
     };
   }
 
@@ -422,6 +429,122 @@ class Terminals extends Component {
     this.setState({
       modalResetExchangeState: false,
       resetExchangeTerminal: null
+    });
+  };
+
+  terminalLookupExpr = (item) => {
+    if (!item) {
+      return '';
+    }
+
+    const name = item.name ? ` - ${item.name}` : '';
+    const provider = item.providerId ? ` (${item.providerId})` : '';
+    return `${item.id}${name}${provider}`;
+  };
+
+  getCopySourceTerminals = () => {
+    const targetId = this.state.copyTargetTerminal ? this.state.copyTargetTerminal.id : null;
+    return this.state.dataGrid.filter((item) => !item.deleted && item.id !== targetId);
+  };
+
+  onOpenCopyBindingsModal = (row) => {
+    this.setState({
+      modalCopyBindings: true,
+      copyTargetTerminal: row,
+      copySourceTerminalId: null,
+      copyProducts: true,
+      copySubCategories: true
+    });
+  };
+
+  onCloseCopyBindingsModal = () => {
+    this.setState({
+      modalCopyBindings: false,
+      copyTargetTerminal: null,
+      copySourceTerminalId: null,
+      copyProducts: true,
+      copySubCategories: true
+    });
+  };
+
+  getBindingCopyResult(data) {
+    let result = data;
+
+    if (typeof result === 'string') {
+      try {
+        result = JSON.parse(result);
+      } catch (e) {
+        result = {};
+      }
+    }
+
+    result = result || {};
+
+    return {
+      sourceTerminalId: result.sourceTerminalId ?? result.SourceTerminalId,
+      targetTerminalId: result.targetTerminalId ?? result.TargetTerminalId,
+      sourceRelationsCount: result.sourceRelationsCount ?? result.SourceRelationsCount ?? 0,
+      addedCount: result.addedCount ?? result.AddedCount ?? 0,
+      skippedExistingCount: result.skippedExistingCount ?? result.SkippedExistingCount ?? 0,
+      targetRelationsCount: result.targetRelationsCount ?? result.TargetRelationsCount ?? 0
+    };
+  }
+
+  showBindingCopyResult = (title, data) => {
+    const result = this.getBindingCopyResult(data);
+    notify(
+      `${title}: у джерелі ${result.sourceRelationsCount}, додано ${result.addedCount}, пропущено існуючих ${result.skippedExistingCount}, у цільового ${result.targetRelationsCount}`,
+      'success',
+      5000
+    );
+  };
+
+  onConfirmCopyBindings = () => {
+    const target = this.state.copyTargetTerminal;
+    const sourceId = Number(this.state.copySourceTerminalId);
+
+    if (!target) {
+      return;
+    }
+
+    if (!sourceId) {
+      notify('Виберіть термінал-джерело', 'warning');
+      return;
+    }
+
+    if (!this.state.copyProducts && !this.state.copySubCategories) {
+      notify('Виберіть, що саме копіювати', 'warning');
+      return;
+    }
+
+    const requests = [];
+
+    if (this.state.copyProducts) {
+      requests.push({
+        title: 'Товари',
+        request: coreApi.post(`/terminal/${target.id}/BindProductsFrom/${sourceId}`)
+      });
+    }
+
+    if (this.state.copySubCategories) {
+      requests.push({
+        title: 'Підкатегорії',
+        request: coreApi.post(`/terminal/${target.id}/BindSubCategoriesFrom/${sourceId}`)
+      });
+    }
+
+    this.props.onLoading(true);
+
+    Promise.all(requests.map((item) => item.request)).then((responses) => {
+      requests.forEach((item, index) => {
+        this.showBindingCopyResult(item.title, responses[index].data);
+      });
+
+      this.onCloseCopyBindingsModal();
+      this.onExecute();
+    }).catch((error) => {
+      this.props.onLoading(false);
+      notify(this.getErrorMessage(error, 'Не вдалося скопіювати привʼязки терміналу'), 'error');
     });
   };
 
@@ -833,6 +956,8 @@ class Terminals extends Component {
 
   render() {
     const resetExchangeTerminal = this.state.resetExchangeTerminal;
+    const copyTargetTerminal = this.state.copyTargetTerminal;
+    const copySourceTerminals = this.getCopySourceTerminals();
 
     return (
       <div style={{ marginTop: '20px' }}>
@@ -911,8 +1036,13 @@ class Terminals extends Component {
                 </FormItem>
               </Form>
             </Editing>
-            <Column type="buttons" width={140} fixed={true} fixedPosition="right">
+            <Column type="buttons" width={180} fixed={true} fixedPosition="right">
               <GridButton name="edit" />
+              <GridButton
+                hint="Копіювати привʼязки з іншого терміналу"
+                icon="copy"
+                onClick={(e) => this.onOpenCopyBindingsModal(e.row.data)}
+              />
               <GridButton
                 hint="Завантажити меню JSON"
                 icon="download"
@@ -958,6 +1088,57 @@ class Terminals extends Component {
                 type="normal"
                 stylingMode="contained"
                 onClick={this.onCloseResetExchangeStateModal}
+              />
+            </ModalFooter>
+          </Modal>
+
+          <Modal isOpen={this.state.modalCopyBindings} toggle={this.onCloseCopyBindingsModal}>
+            <ModalHeader toggle={this.onCloseCopyBindingsModal}>
+              Копіювання привʼязок терміналу
+            </ModalHeader>
+            <ModalBody>
+              <div style={{ marginBottom: 12 }}>
+                Цільовий термінал:{' '}
+                <b>{copyTargetTerminal ? this.terminalLookupExpr(copyTargetTerminal) : ''}</b>
+              </div>
+              <div style={{ marginBottom: 16 }}>
+                <SelectBox
+                  dataSource={copySourceTerminals}
+                  valueExpr="id"
+                  displayExpr={this.terminalLookupExpr}
+                  value={this.state.copySourceTerminalId}
+                  searchEnabled={true}
+                  showClearButton={true}
+                  placeholder="Виберіть термінал-джерело"
+                  onValueChanged={(e) => this.setState({ copySourceTerminalId: e.value })}
+                />
+              </div>
+              <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+                <CheckBox
+                  text="Товари"
+                  value={this.state.copyProducts}
+                  onValueChanged={(e) => this.setState({ copyProducts: e.value })}
+                />
+                <CheckBox
+                  text="Підкатегорії"
+                  value={this.state.copySubCategories}
+                  onValueChanged={(e) => this.setState({ copySubCategories: e.value })}
+                />
+              </div>
+            </ModalBody>
+            <ModalFooter>
+              <Button
+                text="Копіювати"
+                type="success"
+                stylingMode="contained"
+                onClick={this.onConfirmCopyBindings}
+              />
+              {' '}
+              <Button
+                text="Скасувати"
+                type="normal"
+                stylingMode="contained"
+                onClick={this.onCloseCopyBindingsModal}
               />
             </ModalFooter>
           </Modal>

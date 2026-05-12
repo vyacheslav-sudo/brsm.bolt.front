@@ -1,6 +1,6 @@
 {
   "name": "brsm_bolt",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "private": true,
   "dependencies": {
     "@reduxjs/toolkit": "^2.6.1",
