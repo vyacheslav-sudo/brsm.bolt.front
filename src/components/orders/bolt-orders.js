@@ -335,31 +335,38 @@ class BoltOrders extends Component {
       });
   }
 
-  cellButtonAcceptRequest(e) {
-    const isShowButton = (e.data.terminalOutWarning || e.data.terminalOutWarning2) && !e.data.terminalOutWarningAccepted;
+  renderManualAcceptAction(manualAcceptedData) {
+    const manualAcceptRow = manualAcceptedData && manualAcceptedData[0];
+    const isShowButton =
+      manualAcceptRow &&
+      (manualAcceptRow.terminalOutWarning || manualAcceptRow.terminalOutWarning2) &&
+      !manualAcceptRow.terminalOutWarningAccepted;
 
     if (!isShowButton) {
       return null;
     }
 
     return (
-      <div style={{ width: '100%', textAlign: 'center' }}>
+      <div style={{ marginBottom: 12 }}>
         <Button
           id="accept-manual-order-button"
           text="Прийняти"
           type="normal"
           stylingMode="contained"
-          onClick={this.orderManagerAccept.bind(this, e)}
+          onClick={this.orderManagerAccept.bind(this, { data: manualAcceptRow })}
         />
       </div>
     );
   }
 
   renderManualAcceptedDataTab(e) {
+    const manualAcceptedData = e.data.data.manualAcceptedData;
+
     return (
       <div className="detail-tab-content">
+        {this.renderManualAcceptAction(manualAcceptedData)}
         <DataGrid
-          dataSource={e.data.data.manualAcceptedData}
+          dataSource={manualAcceptedData}
           keyExpr="id"
           allowColumnResizing
           columnAutoWidth
@@ -376,7 +383,6 @@ class BoltOrders extends Component {
           <Column dataField="terminalOutWarningAccepted" caption="Підтверджено менеджером" dataType="boolean" />
           <Column dataField="terminalOutWarningManagerName" caption="Менеджер" />
           <Column dataField="terminalOutWarningAcceptedDateTime" caption="Дата підтвердження" dataType="datetime" />
-          <Column cellRender={this.cellButtonAcceptRequest.bind(this)} width={120} />
         </DataGrid>
       </div>
     );
@@ -496,19 +502,22 @@ class BoltOrders extends Component {
     }
 
     const hasWarning = (e.data.terminalOutWarning || e.data.terminalOutWarning2) && !e.data.terminalOutWarningAccepted;
+    const isPacketSynced = e.data.packetOut !== null && e.data.packetIn !== null && e.data.packetOut <= e.data.packetIn;
+    const isProcessedOnAzk = e.data.azkOrderStatus === 'PICKED_UP' || isPacketSynced;
+    const shouldHighlightWarning = hasWarning && !isProcessedOnAzk;
     const hasSyncIssue =
       e.data.packetOut === null ||
       e.data.packetIn === null ||
       (e.data.packetOut !== null && e.data.packetIn !== null && e.data.packetOut > e.data.packetIn);
 
-    if (!hasWarning && !hasSyncIssue) {
+    if (!shouldHighlightWarning && !hasSyncIssue) {
       return;
     }
 
     const cells = e.rowElement.querySelectorAll('td');
 
     for (let index = 0; index < cells.length; index += 1) {
-      cells[index].style.backgroundColor = hasWarning ? '#FF7276' : '#FBBF77';
+      cells[index].style.backgroundColor = shouldHighlightWarning ? '#FF7276' : '#FBBF77';
     }
   }
 
