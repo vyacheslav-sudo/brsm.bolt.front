@@ -223,3 +223,7 @@ body {
 .json-to-table tbody {
   border-radius: 10px;
 }
+
+.copy-bindings-type-checkbox .dx-checkbox-text {
+  font-weight: 700;
+}

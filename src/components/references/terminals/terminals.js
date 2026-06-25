@@ -14,11 +14,11 @@ import DataGrid, {
   Paging,
   Popup,
   SearchPanel,
+  Selection,
   StateStoring
 } from 'devextreme-react/data-grid';
 import { Item as FormItem } from 'devextreme-react/form';
 import { CheckBox } from 'devextreme-react/check-box';
-import { SelectBox } from 'devextreme-react/select-box';
 import { TabPanel, Item as TabPanelItem } from 'devextreme-react/tab-panel';
 import notify from 'devextreme/ui/notify';
 import fileDownload from 'js-file-download';
@@ -141,6 +141,39 @@ const ACCENT_BUTTON_STYLE = {
   color: '#fff'
 };
 
+const COPY_BINDINGS_CONCURRENCY = 5;
+
+async function runLimitedTasks(tasks, limit) {
+  const results = [];
+  let nextIndex = 0;
+  const workerCount = Math.min(limit, tasks.length);
+
+  const workers = Array.from({ length: workerCount }, async () => {
+    while (nextIndex < tasks.length) {
+      const index = nextIndex;
+      nextIndex += 1;
+
+      try {
+        const value = await tasks[index].request();
+        results[index] = {
+          status: 'fulfilled',
+          task: tasks[index],
+          value
+        };
+      } catch (reason) {
+        results[index] = {
+          status: 'rejected',
+          task: tasks[index],
+          reason
+        };
+      }
+    }
+  });
+
+  await Promise.all(workers);
+  return results;
+}
+
 class Terminals extends Component {
   constructor(props) {
     super(props);
@@ -153,7 +186,7 @@ class Terminals extends Component {
       modalResetExchangeState: false,
       resetExchangeTerminal: null,
       modalCopyBindings: false,
-      copyTargetTerminal: null,
+      copyTargetTerminalIds: [],
       copySourceTerminalId: null,
       copyProducts: true,
       copySubCategories: true
@@ -442,16 +475,18 @@ class Terminals extends Component {
     return `${item.id}${name}${provider}`;
   };
 
-  getCopySourceTerminals = () => {
-    const targetId = this.state.copyTargetTerminal ? this.state.copyTargetTerminal.id : null;
-    return this.state.dataGrid.filter((item) => !item.deleted && item.id !== targetId);
+  getActiveTerminals = () => this.state.dataGrid.filter((item) => !item.deleted);
+
+  getCopyTargetTerminals = () => {
+    const sourceId = Number(this.state.copySourceTerminalId);
+    return this.getActiveTerminals().filter((item) => Number(item.id) !== sourceId);
   };
 
   onOpenCopyBindingsModal = (row) => {
     this.setState({
       modalCopyBindings: true,
-      copyTargetTerminal: row,
-      copySourceTerminalId: null,
+      copyTargetTerminalIds: [],
+      copySourceTerminalId: row ? Number(row.id) : null,
       copyProducts: true,
       copySubCategories: true
     });
@@ -460,10 +495,53 @@ class Terminals extends Component {
   onCloseCopyBindingsModal = () => {
     this.setState({
       modalCopyBindings: false,
-      copyTargetTerminal: null,
+      copyTargetTerminalIds: [],
       copySourceTerminalId: null,
       copyProducts: true,
       copySubCategories: true
+    });
+  };
+
+  onCopyTargetSelectionChanged = (e) => {
+    const sourceId = Number(this.state.copySourceTerminalId);
+    const selectedIds = (e.selectedRowKeys || [])
+      .map(Number)
+      .filter((item) => item !== sourceId);
+
+    this.setState({ copyTargetTerminalIds: selectedIds });
+  };
+
+  onSelectAllCopyTargets = () => {
+    this.setState({
+      copyTargetTerminalIds: this.getCopyTargetTerminals().map((item) => Number(item.id))
+    });
+  };
+
+  onClearCopyTargets = () => {
+    this.setState({ copyTargetTerminalIds: [] });
+  };
+
+  prepareCopyTargetsToolbar = (e) => {
+    e.toolbarOptions.items.unshift({
+      location: 'before',
+      widget: 'dxButton',
+      options: {
+        text: 'Очистити',
+        type: 'normal',
+        stylingMode: 'outlined',
+        onClick: this.onClearCopyTargets
+      }
+    });
+
+    e.toolbarOptions.items.unshift({
+      location: 'before',
+      widget: 'dxButton',
+      options: {
+        text: 'Вибрати всі',
+        type: 'normal',
+        stylingMode: 'outlined',
+        onClick: this.onSelectAllCopyTargets
+      }
     });
   };
 
@@ -490,25 +568,47 @@ class Terminals extends Component {
     };
   }
 
-  showBindingCopyResult = (title, data) => {
-    const result = this.getBindingCopyResult(data);
+  showBindingCopySummary = (results) => {
+    const successResults = results.filter((item) => item.status === 'fulfilled');
+    const failedResults = results.filter((item) => item.status === 'rejected');
+    const totals = successResults.reduce((acc, item) => {
+      const result = this.getBindingCopyResult(item.value.data);
+
+      acc.added += result.addedCount;
+      acc.skipped += result.skippedExistingCount;
+      return acc;
+    }, {
+      added: 0,
+      skipped: 0
+    });
+
     notify(
-      `${title}: у джерелі ${result.sourceRelationsCount}, додано ${result.addedCount}, пропущено існуючих ${result.skippedExistingCount}, у цільового ${result.targetRelationsCount}`,
-      'success',
-      5000
+      `Копіювання завершено. Успішно: ${successResults.length}, помилок: ${failedResults.length}, додано: ${totals.added}, пропущено існуючих: ${totals.skipped}`,
+      failedResults.length ? 'warning' : 'success',
+      7000
     );
+
+    if (failedResults.length) {
+      const failedTargets = failedResults
+        .slice(0, 8)
+        .map((item) => `${item.task.title} -> ${item.task.targetId}`)
+        .join(', ');
+
+      notify(`Помилки копіювання: ${failedTargets}${failedResults.length > 8 ? '...' : ''}`, 'error', 9000);
+    }
   };
 
-  onConfirmCopyBindings = () => {
-    const target = this.state.copyTargetTerminal;
+  onConfirmCopyBindings = async () => {
     const sourceId = Number(this.state.copySourceTerminalId);
-
-    if (!target) {
-      return;
-    }
+    const targetIds = this.state.copyTargetTerminalIds.map(Number).filter((item) => item !== sourceId);
 
     if (!sourceId) {
       notify('Виберіть термінал-джерело', 'warning');
+      return;
+    }
+
+    if (!targetIds.length) {
+      notify('Виберіть хоча б один цільовий термінал', 'warning');
       return;
     }
 
@@ -519,33 +619,35 @@ class Terminals extends Component {
 
     const requests = [];
 
-    if (this.state.copyProducts) {
-      requests.push({
-        title: 'Товари',
-        request: coreApi.post(`/terminal/${target.id}/BindProductsFrom/${sourceId}`)
-      });
-    }
+    targetIds.forEach((targetId) => {
+      if (this.state.copyProducts) {
+        requests.push({
+          title: 'Товари',
+          targetId,
+          request: () => coreApi.post(`/terminal/${targetId}/BindProductsFrom/${sourceId}`)
+        });
+      }
 
-    if (this.state.copySubCategories) {
-      requests.push({
-        title: 'Підкатегорії',
-        request: coreApi.post(`/terminal/${target.id}/BindSubCategoriesFrom/${sourceId}`)
-      });
-    }
+      if (this.state.copySubCategories) {
+        requests.push({
+          title: 'Підкатегорії',
+          targetId,
+          request: () => coreApi.post(`/terminal/${targetId}/BindSubCategoriesFrom/${sourceId}`)
+        });
+      }
+    });
 
     this.props.onLoading(true);
 
-    Promise.all(requests.map((item) => item.request)).then((responses) => {
-      requests.forEach((item, index) => {
-        this.showBindingCopyResult(item.title, responses[index].data);
-      });
-
+    try {
+      const results = await runLimitedTasks(requests, COPY_BINDINGS_CONCURRENCY);
+      this.showBindingCopySummary(results);
       this.onCloseCopyBindingsModal();
       this.onExecute();
-    }).catch((error) => {
+    } catch (error) {
       this.props.onLoading(false);
       notify(this.getErrorMessage(error, 'Не вдалося скопіювати привʼязки терміналу'), 'error');
-    });
+    }
   };
 
   getResetExchangeStateResult(data, terminalId) {
@@ -956,8 +1058,12 @@ class Terminals extends Component {
 
   render() {
     const resetExchangeTerminal = this.state.resetExchangeTerminal;
-    const copyTargetTerminal = this.state.copyTargetTerminal;
-    const copySourceTerminals = this.getCopySourceTerminals();
+    const copySourceTerminal = this.state.dataGrid.find((item) => Number(item.id) === Number(this.state.copySourceTerminalId));
+    const copyTargetTerminals = this.getCopyTargetTerminals();
+    const copyTargetTerminalIds = this.state.copyTargetTerminalIds.map(Number);
+    const isCopyDisabled = !this.state.copySourceTerminalId ||
+      !copyTargetTerminalIds.length ||
+      (!this.state.copyProducts && !this.state.copySubCategories);
 
     return (
       <div style={{ marginTop: '20px' }}>
@@ -1039,7 +1145,7 @@ class Terminals extends Component {
             <Column type="buttons" width={180} fixed={true} fixedPosition="right">
               <GridButton name="edit" />
               <GridButton
-                hint="Копіювати привʼязки з іншого терміналу"
+                hint="Копіювати привʼязки цього терміналу на інші"
                 icon="copy"
                 onClick={(e) => this.onOpenCopyBindingsModal(e.row.data)}
               />
@@ -1092,36 +1198,83 @@ class Terminals extends Component {
             </ModalFooter>
           </Modal>
 
-          <Modal isOpen={this.state.modalCopyBindings} toggle={this.onCloseCopyBindingsModal}>
+          <Modal isOpen={this.state.modalCopyBindings} toggle={this.onCloseCopyBindingsModal} size="lg">
             <ModalHeader toggle={this.onCloseCopyBindingsModal}>
               Копіювання привʼязок терміналу
             </ModalHeader>
             <ModalBody>
-              <div style={{ marginBottom: 12 }}>
-                Цільовий термінал:{' '}
-                <b>{copyTargetTerminal ? this.terminalLookupExpr(copyTargetTerminal) : ''}</b>
+              <div
+                style={{
+                  backgroundColor: '#f7fbff',
+                  border: '1px solid #cfe5f8',
+                  borderLeft: '4px solid #7AB8EB',
+                  borderRadius: 4,
+                  marginBottom: 16,
+                  padding: '12px 14px'
+                }}
+              >
+                <div style={{
+                  color: '#5f6f7b',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  marginBottom: 4,
+                  textTransform: 'uppercase'
+                }}
+                >
+                  Термінал-джерело
+                </div>
+                <div style={{
+                  color: '#111',
+                  fontSize: 17,
+                  fontWeight: 700,
+                  lineHeight: 1.35
+                }}
+                >
+                  {copySourceTerminal ? this.terminalLookupExpr(copySourceTerminal) : ''}
+                </div>
               </div>
               <div style={{ marginBottom: 16 }}>
-                <SelectBox
-                  dataSource={copySourceTerminals}
-                  valueExpr="id"
-                  displayExpr={this.terminalLookupExpr}
-                  value={this.state.copySourceTerminalId}
-                  searchEnabled={true}
-                  showClearButton={true}
-                  placeholder="Виберіть термінал-джерело"
-                  onValueChanged={(e) => this.setState({ copySourceTerminalId: e.value })}
-                />
+                <div style={{ marginBottom: 8 }}>
+                  Цільові термінали: <b>{copyTargetTerminalIds.length}</b>
+                </div>
+                <DataGrid
+                  dataSource={copyTargetTerminals}
+                  keyExpr="id"
+                  selectedRowKeys={copyTargetTerminalIds}
+                  onSelectionChanged={this.onCopyTargetSelectionChanged}
+                  allowColumnResizing={true}
+                  columnAutoWidth={true}
+                  showBorders={true}
+                  rowAlternationEnabled={true}
+                  height={320}
+                  filterRow={{ applyFilter: true, visible: true }}
+                  onToolbarPreparing={this.prepareCopyTargetsToolbar}
+                >
+                  <Selection mode="multiple" showCheckBoxesMode="always" selectAllMode="allPages" />
+                  <SearchPanel visible={true} />
+                  <Paging defaultPageSize={10} />
+                  <Pager
+                    showPageSizeSelector={true}
+                    allowedPageSizes={[10, 20, 50]}
+                    showInfo={true}
+                  />
+                  <Column dataField="id" caption="АЗК ID" width={90} />
+                  <Column dataField="name" caption="Назва" />
+                  <Column dataField="providerId" caption="Provider ID" width={120} />
+                  <Column dataField="address" caption="Адреса" />
+                </DataGrid>
               </div>
               <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
                 <CheckBox
                   text="Товари"
                   value={this.state.copyProducts}
+                  elementAttr={{ class: 'copy-bindings-type-checkbox' }}
                   onValueChanged={(e) => this.setState({ copyProducts: e.value })}
                 />
                 <CheckBox
                   text="Підкатегорії"
                   value={this.state.copySubCategories}
+                  elementAttr={{ class: 'copy-bindings-type-checkbox' }}
                   onValueChanged={(e) => this.setState({ copySubCategories: e.value })}
                 />
               </div>
@@ -1131,6 +1284,7 @@ class Terminals extends Component {
                 text="Копіювати"
                 type="success"
                 stylingMode="contained"
+                disabled={isCopyDisabled}
                 onClick={this.onConfirmCopyBindings}
               />
               {' '}
