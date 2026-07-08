@@ -179,10 +179,15 @@ class Terminals extends Component {
     this.state = {
       dataGrid: [],
       regions: [],
+      terminalDetails: {},
+      terminalDetailsLoading: {},
       scheduleDrafts: {},
       detailTabIndex: {},
       modalResetExchangeState: false,
       resetExchangeTerminal: null,
+      modalBoltStatusChange: false,
+      boltStatusTerminal: null,
+      boltStatusNextActive: null,
       modalCopyBindings: false,
       copyTargetTerminalIds: [],
       copySourceTerminalId: null,
@@ -420,6 +425,61 @@ class Terminals extends Component {
     e.cancel = this.saveTerminal(coreApi.post('/terminal', payload));
   };
 
+  loadTerminalDetails = (terminalId, force = false) => {
+    if (!terminalId) {
+      return;
+    }
+
+    if (!force && (this.state.terminalDetails[terminalId] || this.state.terminalDetailsLoading[terminalId])) {
+      return;
+    }
+
+    this.setState((state) => ({
+      terminalDetailsLoading: {
+        ...state.terminalDetailsLoading,
+        [terminalId]: true
+      }
+    }));
+
+    coreApi.get(`/terminal/Id/${terminalId}`).then((response) => {
+      const detail = response.data || {};
+
+      this.setState((state) => ({
+        dataGrid: state.dataGrid.map((item) => (
+          Number(item.id) === Number(terminalId)
+            ? { ...item, ...detail }
+            : item
+        )),
+        terminalDetails: {
+          ...state.terminalDetails,
+          [terminalId]: detail
+        },
+        terminalDetailsLoading: {
+          ...state.terminalDetailsLoading,
+          [terminalId]: false
+        },
+        scheduleDrafts: detail.workSchedule
+          ? {
+            ...state.scheduleDrafts,
+            [terminalId]: normalizeSchedule(detail.workSchedule)
+          }
+          : state.scheduleDrafts
+      }), this.updateGridDimensions);
+    }).catch((error) => {
+      this.setState((state) => ({
+        terminalDetailsLoading: {
+          ...state.terminalDetailsLoading,
+          [terminalId]: false
+        }
+      }));
+      notify(this.getErrorMessage(error, 'Не вдалося завантажити повну картку терміналу'), 'error');
+    });
+  };
+
+  onRowExpanded = (e) => {
+    this.loadTerminalDetails(e.key);
+  };
+
   onPopupSave = () => {
     if (this.dataGrid && this.dataGrid.instance) {
       this.dataGrid.instance.saveEditData();
@@ -464,10 +524,51 @@ class Terminals extends Component {
       this.props.onLoading(false);
       notify(isActive ? 'Точку відкрито в Bolt' : 'Точку закрито в Bolt', 'success');
       this.onExecute();
+      if (this.state.terminalDetails[row.id]) {
+        this.loadTerminalDetails(row.id, true);
+      }
     }).catch((error) => {
       this.props.onLoading(false);
       notify(this.getErrorMessage(error, 'Не вдалося змінити статус точки в Bolt'), 'error');
     });
+  };
+
+  onOpenBoltStatusModal = (row, isActive) => {
+    if (!row || !row.id) {
+      return;
+    }
+
+    if (row.providerId === null || row.providerId === undefined || String(row.providerId).trim() === '') {
+      notify('Для керування статусом Bolt вкажіть Provider ID', 'warning');
+      return;
+    }
+
+    this.setState({
+      modalBoltStatusChange: true,
+      boltStatusTerminal: row,
+      boltStatusNextActive: isActive
+    });
+  };
+
+  onCloseBoltStatusModal = () => {
+    this.setState({
+      modalBoltStatusChange: false,
+      boltStatusTerminal: null,
+      boltStatusNextActive: null
+    });
+  };
+
+  onConfirmBoltStatusChange = () => {
+    const terminal = this.state.boltStatusTerminal;
+    const nextActive = this.state.boltStatusNextActive;
+
+    this.setState({
+      modalBoltStatusChange: false,
+      boltStatusTerminal: null,
+      boltStatusNextActive: null
+    });
+
+    this.onSetBoltTerminalActive(terminal, nextActive);
   };
 
   cellBoltStatusAction = (e) => {
@@ -494,7 +595,7 @@ class Terminals extends Component {
           disabled={disabled}
           type="default"
           stylingMode="contained"
-          onClick={disabled ? undefined : () => this.onSetBoltTerminalActive(row, !isActive)}
+          onClick={disabled ? undefined : () => this.onOpenBoltStatusModal(row, !isActive)}
         />
       </div>
     );
@@ -940,8 +1041,39 @@ class Terminals extends Component {
     });
   };
 
-  renderProductHistory = (terminal) => (
+  renderActivityHistory = (terminal, loading) => (
     <div className="detail-tab-content">
+      {loading ? (
+        <div className="text-muted">Завантаження історії...</div>
+      ) : (
+        <DataGrid
+          dataSource={terminal.history || []}
+          keyExpr="id"
+          allowColumnResizing={true}
+          columnAutoWidth={true}
+          showBorders={true}
+          rowAlternationEnabled={true}
+        >
+          <Paging defaultPageSize={10} />
+          <Pager
+            showPageSizeSelector={true}
+            allowedPageSizes={[10, 20, 50]}
+            showInfo={true}
+          />
+          <Column dataField="id" caption="ID" width={90} />
+          <Column dataField="activity" caption="Активність" dataType="boolean" width={130} />
+          <Column dataField="action" caption="Дія" />
+          <Column dataField="editDate" caption="Дата редаг." dataType="datetime" />
+        </DataGrid>
+      )}
+    </div>
+  );
+
+  renderProductHistory = (terminal, loading) => (
+    <div className="detail-tab-content">
+      {loading ? (
+        <div className="text-muted">Завантаження товарів...</div>
+      ) : (
       <DataGrid
         dataSource={terminal.productHistory || []}
         keyExpr="id"
@@ -964,6 +1096,7 @@ class Terminals extends Component {
         <Column dataField="dateFrom" caption="Діє з" dataType="datetime" />
         <Column dataField="editDate" caption="Дата редаг." dataType="datetime" />
       </DataGrid>
+      )}
     </div>
   );
 
@@ -1083,8 +1216,11 @@ class Terminals extends Component {
   };
 
   renderTerminalDetails = (e) => {
-    const terminal = e.data.data;
-    const selectedIndex = this.state.detailTabIndex[terminal.id] ?? 0;
+    const rowTerminal = e.data.data;
+    const terminalDetail = this.state.terminalDetails[rowTerminal.id];
+    const terminal = terminalDetail ? { ...rowTerminal, ...terminalDetail } : rowTerminal;
+    const loadingDetail = !!this.state.terminalDetailsLoading[rowTerminal.id];
+    const selectedIndex = this.state.detailTabIndex[rowTerminal.id] ?? 0;
 
     return (
       <div>
@@ -1096,9 +1232,10 @@ class Terminals extends Component {
           animationEnabled={false}
           selectedIndex={selectedIndex}
           onContentReady={this.updateGridDimensions}
-          onSelectionChanged={(args) => this.setDetailTabIndex(terminal.id, args.component.option('selectedIndex'))}
+          onSelectionChanged={(args) => this.setDetailTabIndex(rowTerminal.id, args.component.option('selectedIndex'))}
         >
-          <TabPanelItem title="Історія товарів" render={() => this.renderProductHistory(terminal)} />
+          <TabPanelItem title="Історія активності" render={() => this.renderActivityHistory(terminal, loadingDetail)} />
+          <TabPanelItem title="Товари терміналу" render={() => this.renderProductHistory(terminal, loadingDetail)} />
           <TabPanelItem title="Графік роботи" render={() => this.renderScheduleEditor(terminal)} />
         </TabPanel>
       </div>
@@ -1107,6 +1244,8 @@ class Terminals extends Component {
 
   render() {
     const resetExchangeTerminal = this.state.resetExchangeTerminal;
+    const boltStatusTerminal = this.state.boltStatusTerminal;
+    const boltStatusActionText = this.state.boltStatusNextActive ? 'відкрити' : 'закрити';
     const copySourceTerminal = this.state.dataGrid.find((item) => Number(item.id) === Number(this.state.copySourceTerminalId));
     const copyTargetTerminals = this.getCopyTargetTerminals();
     const copyTargetTerminalIds = this.state.copyTargetTerminalIds.map(Number);
@@ -1125,6 +1264,7 @@ class Terminals extends Component {
             onInitNewRow={this.onInitNewRow}
             onRowUpdating={this.onRowUpdating}
             onRowInserting={this.onRowInserting}
+            onRowExpanded={this.onRowExpanded}
             allowColumnReordering={true}
             allowColumnResizing={true}
             columnAutoWidth={true}
@@ -1241,6 +1381,28 @@ class Terminals extends Component {
                 type="normal"
                 stylingMode="contained"
                 onClick={this.onCloseResetExchangeStateModal}
+              />
+            </ModalFooter>
+          </Modal>
+
+          <Modal isOpen={this.state.modalBoltStatusChange}>
+            <ModalBody>
+              Ви дійсно бажаєте {boltStatusActionText} точку в Bolt{' '}
+              <b>{boltStatusTerminal ? (boltStatusTerminal.name || boltStatusTerminal.id) : ''}</b>?
+            </ModalBody>
+            <ModalFooter>
+              <Button
+                text="Так"
+                type={this.state.boltStatusNextActive ? 'success' : 'danger'}
+                stylingMode="contained"
+                onClick={this.onConfirmBoltStatusChange}
+              />
+              {' '}
+              <Button
+                text="Ні"
+                type="normal"
+                stylingMode="contained"
+                onClick={this.onCloseBoltStatusModal}
               />
             </ModalFooter>
           </Modal>
