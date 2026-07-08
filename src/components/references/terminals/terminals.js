@@ -117,8 +117,6 @@ function buildTerminalPayload(data) {
     name: data.name,
     providerId: data.providerId || null,
     address: data.address || null,
-    temporaryClosed: !!data.temporaryClosed,
-    temporaryClosedUntil: data.temporaryClosedUntil || null,
     regionId: data.regionId,
     deleted: !!data.deleted
   };
@@ -264,7 +262,6 @@ class Terminals extends Component {
   onInitNewRow = (e) => {
     e.data.providerId = '';
     e.data.address = '';
-    e.data.temporaryClosed = false;
     e.data.deleted = false;
     e.data.regionId = this.getDefaultRegionId();
   };
@@ -449,6 +446,58 @@ class Terminals extends Component {
       this.props.onLoading(false);
       notify(this.getErrorMessage(error, 'Не вдалося завантажити меню'), 'error');
     });
+  };
+
+  onSetBoltTerminalActive = (row, isActive) => {
+    if (!row || !row.id) {
+      return;
+    }
+
+    if (row.providerId === null || row.providerId === undefined || String(row.providerId).trim() === '') {
+      notify('Для керування статусом Bolt вкажіть Provider ID', 'warning');
+      return;
+    }
+
+    this.props.onLoading(true);
+
+    coreApi.post(`/terminal/${row.id}/${isActive ? 'Open' : 'Close'}`).then(() => {
+      this.props.onLoading(false);
+      notify(isActive ? 'Точку відкрито в Bolt' : 'Точку закрито в Bolt', 'success');
+      this.onExecute();
+    }).catch((error) => {
+      this.props.onLoading(false);
+      notify(this.getErrorMessage(error, 'Не вдалося змінити статус точки в Bolt'), 'error');
+    });
+  };
+
+  cellBoltStatusAction = (e) => {
+    const row = e.data || {};
+    const disabled = row.providerId === null || row.providerId === undefined || String(row.providerId).trim() === '';
+    const isActive = row.boltCurrentActive === true;
+    const buttonText = disabled
+      ? 'Недоступно'
+      : (isActive ? 'Закрити' : 'Відкрити');
+    const buttonClass = disabled
+      ? 'btn-sw-mode-unavailable'
+      : (isActive ? 'btn-sw-mode-off' : 'btn-sw-mode-on');
+    const hint = disabled
+      ? 'Для керування статусом Bolt вкажіть Provider ID'
+      : (isActive ? 'Закрити точку в Bolt' : 'Відкрити точку в Bolt');
+
+    return (
+      <div style={{ width: '100%', textAlign: 'center' }}>
+        <Button
+          id="stand-operation-button-without-color"
+          className={buttonClass}
+          text={buttonText}
+          hint={hint}
+          disabled={disabled}
+          type="default"
+          stylingMode="contained"
+          onClick={disabled ? undefined : () => this.onSetBoltTerminalActive(row, !isActive)}
+        />
+      </div>
+    );
   };
 
   onOpenResetExchangeStateModal = (row) => {
@@ -1103,7 +1152,7 @@ class Terminals extends Component {
                 title="Додавання/редагування терміналу"
                 showTitle={true}
                 width={520}
-                height={420}
+                height={350}
                 toolbarItems={[
                   {
                     toolbar: 'bottom',
@@ -1136,8 +1185,6 @@ class Terminals extends Component {
                   <FormItem dataField="providerId" />
                   <FormItem dataField="regionId" isRequired={true} />
                   <FormItem dataField="address" editorType="dxTextArea" />
-                  <FormItem dataField="temporaryClosed" />
-                  <FormItem dataField="temporaryClosedUntil" editorType="dxDateBox" />
                   <FormItem dataField="deleted" />
                 </FormItem>
               </Form>
@@ -1163,12 +1210,12 @@ class Terminals extends Component {
             <Column dataField="id" caption="АЗК ID" width={100} />
             <Column dataField="name" caption="Назва" />
             <Column dataField="providerId" caption="Provider ID" />
+            <Column caption="Точка в Bolt" width={140} alignment="center" cellRender={this.cellBoltStatusAction} />
             <Column dataField="regionId" caption="Регіон">
               <Lookup dataSource={this.state.regions.filter((item) => !item.deleted)} valueExpr="id" displayExpr="name" />
             </Column>
             <Column dataField="address" caption="Адреса" />
-            <Column dataField="temporaryClosed" caption="Тимчасово закрито" dataType="boolean" />
-            <Column dataField="temporaryClosedUntil" caption="Закрито до" dataType="datetime" />
+            <Column dataField="boltCurrentActive" caption="Активна в Bolt" dataType="boolean" />
             <Column dataField="deleted" caption="Вимкнений" dataType="boolean" />
             <Column dataField="lastReceivedDate" caption="Останнє отримання" dataType="datetime" />
             <Column dataField="lastSendPacketChangeDate" caption="Остання активність" dataType="datetime" />

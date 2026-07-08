@@ -227,3 +227,42 @@ body {
 .copy-bindings-type-checkbox .dx-checkbox-text {
   font-weight: 700;
 }
+
+#stand-operation-button-without-color {
+  font-size: 10px;
+  text-transform: uppercase;
+  font-weight: bold;
+  margin-right: 0px !important;
+  border-radius: 5px;
+}
+
+.btn-sw-mode-on {
+  background-color: #5cb85c !important;
+  border-color: #4cae4c !important;
+  color: #ffffff !important;
+}
+
+.btn-sw-mode-on:hover:not(.dx-state-disabled) {
+  background-color: #449d44 !important;
+  border-color: #398439 !important;
+}
+
+.btn-sw-mode-off {
+  background-color: #d9534f !important;
+  border-color: #d43f3a !important;
+  color: #ffffff !important;
+}
+
+.btn-sw-mode-off:hover:not(.dx-state-disabled) {
+  background-color: #c9302c !important;
+  border-color: #ac2925 !important;
+}
+
+.btn-sw-mode-unavailable,
+.btn-sw-mode-unavailable.dx-state-disabled {
+  background-color: #e0e0e0 !important;
+  border-color: #d6d6d6 !important;
+  color: #ffffff !important;
+  cursor: default !important;
+  opacity: 1 !important;
+}
